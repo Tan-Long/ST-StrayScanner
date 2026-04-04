@@ -9,6 +9,7 @@
 import Foundation
 import Accelerate
 import ARKit
+import AVFoundation
 
 class OdometryEncoder {
     let path: URL
@@ -21,7 +22,7 @@ class OdometryEncoder {
         do {
             try "".write(to: self.path, atomically: true, encoding: .utf8)
             self.fileHandle = try FileHandle(forWritingTo: self.path)
-            self.fileHandle.write("timestamp, frame, x, y, z, qx, qy, qz, qw\n".data(using: .utf8)!)
+            self.fileHandle.write("timestamp, frame, x, y, z, qx, qy, qz, qw, fx, fy, cx, cy, distortion_center_x, distortion_center_y\n".data(using: .utf8)!)
         } catch let error {
             print("Can't create file \(self.path.absoluteString). \(error.localizedDescription)")
             preconditionFailure("Can't open odometry file for writing.")
@@ -36,7 +37,18 @@ class OdometryEncoder {
         let q_WA = simd_quatf(transform)
         let q: vector_float4 = (q_WA * q_AC).vector
         let frameNumber = String(format: "%06d", currentFrame)
-        let line = "\(frame.timestamp), \(frameNumber), \(xyz.x), \(xyz.y), \(xyz.z), \(q.x), \(q.y), \(q.z), \(q.w)\n"
+
+        let intrinsics = frame.camera.intrinsics
+        let fx = intrinsics.columns.0.x
+        let fy = intrinsics.columns.1.y
+        let cx = intrinsics.columns.2.x
+        let cy = intrinsics.columns.2.y
+
+        let distortionCenter = frame.capturedDepthData?.cameraCalibrationData?.lensDistortionCenter
+        let dcx = distortionCenter.map { "\($0.x)" } ?? ""
+        let dcy = distortionCenter.map { "\($0.y)" } ?? ""
+
+        let line = "\(frame.timestamp), \(frameNumber), \(xyz.x), \(xyz.y), \(xyz.z), \(q.x), \(q.y), \(q.z), \(q.w), \(fx), \(fy), \(cx), \(cy), \(dcx), \(dcy)\n"
         self.fileHandle.write(line.data(using: .utf8)!)
     }
 

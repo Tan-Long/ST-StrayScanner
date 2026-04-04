@@ -23,11 +23,13 @@ class DatasetEncoder {
     private let datasetDirectory: URL
     private let odometryEncoder: OdometryEncoder
     private let imuEncoder: IMUEncoder
+    private let distortionEncoder: DistortionEncoder
     private var lastFrame: ARFrame?
     private var dispatchGroup = DispatchGroup()
     private var currentFrame: Int = -1
     private var savedFrames: Int = 0
     private let frameInterval: Int // Only save every frameInterval-th frame.
+    private let encodingSemaphore = DispatchSemaphore(value: 3) // Limit queued frames to avoid ARFrame retention
     public let id: UUID
     public let rgbFilePath: URL // Relative to app document directory.
     public let depthFilePath: URL // Relative to app document directory.
@@ -61,17 +63,27 @@ class DatasetEncoder {
         self.odometryEncoder = OdometryEncoder(url: self.odometryPath)
         self.imuPath = datasetDirectory.appendingPathComponent("imu.csv", isDirectory: false)
         self.imuEncoder = IMUEncoder(url: self.imuPath)
+        self.distortionEncoder = DistortionEncoder(datasetDirectory: datasetDirectory)
     }
 
     func add(frame: ARFrame) {
         let totalFrames: Int = currentFrame
-        let frameNumber: Int = savedFrames
         currentFrame = currentFrame + 1
         if (currentFrame % frameInterval != 0) {
             return
         }
+        // Drop frame if encoding is backed up to avoid accumulating ARFrame references.
+        guard encodingSemaphore.wait(timeout: .now()) == .success else {
+            return
+        }
+        let frameNumber: Int = savedFrames
+        savedFrames = savedFrames + 1
         dispatchGroup.enter()
         queue.async {
+            defer {
+                self.encodingSemaphore.signal()
+                self.dispatchGroup.leave()
+            }
             if let sceneDepth = frame.sceneDepth {
                 self.depthEncoder.encodeFrame(frame: sceneDepth.depthMap, frameNumber: frameNumber)
                 if let confidence = sceneDepth.confidenceMap {
@@ -84,10 +96,9 @@ class DatasetEncoder {
             }
             self.rgbEncoder.add(frame: VideoEncoderInput(buffer: frame.capturedImage, time: frame.timestamp), currentFrame: totalFrames)
             self.odometryEncoder.add(frame: frame, currentFrame: frameNumber)
+            self.distortionEncoder.add(frame: frame, currentFrame: frameNumber)
             self.lastFrame = frame
-            self.dispatchGroup.leave()
         }
-        savedFrames = savedFrames + 1
     }
     
    func addRawAccelerometer(data: CMAccelerometerData) {
@@ -128,6 +139,7 @@ class DatasetEncoder {
         self.rgbEncoder.finishEncoding()
         self.imuEncoder.done()
         self.odometryEncoder.done()
+        self.distortionEncoder.done()
         writeIntrinsics()
         switch self.rgbEncoder.status {
             case .allGood:

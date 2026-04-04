@@ -163,7 +163,6 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         updateLabelTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             self.updateTime()
         }
-        startRawIMU()
         datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting])
         startRawIMU()
     }

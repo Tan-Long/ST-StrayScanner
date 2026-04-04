@@ -142,7 +142,7 @@ class CameraRenderer {
         pipeline.fragmentFunction = defaultLibrary.makeFunction(name: "displayTexture")
         pipeline.vertexDescriptor = imagePlaneVertexDescriptor
         pipeline.colorAttachments[0].pixelFormat = .bgra8Unorm
-        pipeline.sampleCount = 1
+        pipeline.rasterSampleCount = 1
 
         let depthPipeline = MTLRenderPipelineDescriptor()
         depthPipeline.label = "DepthView"
@@ -150,7 +150,7 @@ class CameraRenderer {
         depthPipeline.fragmentFunction = defaultLibrary.makeFunction(name: "depthFragment")
         depthPipeline.vertexDescriptor = imagePlaneVertexDescriptor
         depthPipeline.colorAttachments[0].pixelFormat = depthLayer.pixelFormat
-        depthPipeline.sampleCount = 1
+        depthPipeline.rasterSampleCount = 1
 
         rgbPipelineState = try! device.makeRenderPipelineState(descriptor: pipeline)
         depthPipelineState = try! device.makeRenderPipelineState(descriptor: depthPipeline)

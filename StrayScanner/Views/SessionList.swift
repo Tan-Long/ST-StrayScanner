@@ -26,6 +26,7 @@ class SessionListViewModel: ObservableObject {
 
     func fetchSessions() {
         let request = NSFetchRequest<NSManagedObject>(entityName: "Recording")
+        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
         do {
             let fetched: [NSManagedObject] = try dataContext?.fetch(request) ?? []
             sessions = fetched.map { session in
@@ -46,10 +47,6 @@ class SessionListViewModel: ObservableObject {
 struct SessionList: View {
     @ObservedObject var viewModel = SessionListViewModel()
     @State private var showingInfo = false
-
-    init() {
-        UITableView.appearance().backgroundColor = UIColor(named: "BackgroundColor")
-    }
 
     var body: some View {
         ZStack {
@@ -87,6 +84,7 @@ struct SessionList: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
                     Spacer()
                 } else {
                     Spacer()
