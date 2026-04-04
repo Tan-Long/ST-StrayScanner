@@ -26,13 +26,16 @@ This app lets you record video and depth datasets using the camera and LIDAR sca
                 heading("Transfering Datasets To Your Desktop Computer")
                 
                 bodyText("""
-The recorded datasets can be exported by connecting your device to it with the lightning cable.
+The recorded datasets can be exported in several ways:
 
-On Mac, you can access the files through Finder. In the sidebar, select your device. Under the "Files" tab, you should see an entry for Stray Scanner. Expand it, then drag the folders to the desired location. There is one folder per dataset, each named after a random alphanumerical hash.
+1. Share directly from the app: Tap the "Share" button inside any recording to export it as a ZIP archive via AirDrop, email, or save to Files.
 
-On Windows, you can access the files through iTunes.
+2. Connect your device with the lightning cable:
+   • On Mac, access files through Finder sidebar > your device > "Files" tab > Stray Scanner
+   • On Windows, access files through iTunes
+   • Drag folders to your desired location (one folder per dataset)
 
-Alternatively, you can access the data in the Files app under "Browse > On My iPhone > Stray Scanner" and export them to another app or move them to your iCloud drive.
+3. Use the Files app: Browse > On My iPhone > Stray Scanner, then export to another app or iCloud drive.
 """)
 }
                 Group {
