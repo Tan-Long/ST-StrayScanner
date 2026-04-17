@@ -72,6 +72,12 @@
 		70D1234C2E1800000027BEEF /* DistortionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D1234A2E1800000027BEEF /* DistortionEncoder.swift */; };
 		AA0000012E000000000AAAAA /* LocationMetadataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000002E000000000AAAAA /* LocationMetadataManager.swift */; };
 		AA0000022E000000000AAAAA /* LocationMetadataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000002E000000000AAAAA /* LocationMetadataManager.swift */; };
+		BB0000012E000000000BBBBB /* SampleLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000002E000000000BBBBB /* SampleLogger.swift */; };
+		BB0000022E000000000BBBBB /* SampleLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000002E000000000BBBBB /* SampleLogger.swift */; };
+		BB0000032E000000000BBBBB /* SamplePhotoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000042E000000000BBBBB /* SamplePhotoViewController.swift */; };
+		BB0000052E000000000BBBBB /* SamplePhotoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000042E000000000BBBBB /* SamplePhotoViewController.swift */; };
+		BB0000062E000000000BBBBB /* SampleSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000072E000000000BBBBB /* SampleSession.swift */; };
+		BB0000082E000000000BBBBB /* SampleSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000072E000000000BBBBB /* SampleSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +134,9 @@
 		709259182E0B79AB00A7B62E /* ShareUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareUtility.swift; sourceTree = "<group>"; };
 		70D1234A2E1800000027BEEF /* DistortionEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistortionEncoder.swift; sourceTree = "<group>"; };
 		AA0000002E000000000AAAAA /* LocationMetadataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationMetadataManager.swift; sourceTree = "<group>"; };
+		BB0000002E000000000BBBBB /* SampleLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SampleLogger.swift; sourceTree = "<group>"; };
+		BB0000042E000000000BBBBB /* SamplePhotoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SamplePhotoViewController.swift; sourceTree = "<group>"; };
+		BB0000072E000000000BBBBB /* SampleSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SampleSession.swift; sourceTree = "<group>"; };
 		AC52749A3B5AED09C9753120 /* Pods-StrayScanner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StrayScanner.debug.xcconfig"; path = "Target Support Files/Pods-StrayScanner/Pods-StrayScanner.debug.xcconfig"; sourceTree = "<group>"; };
 		DBC054EDDA47FB8A717AA671 /* Pods_StrayScanner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_StrayScanner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -191,6 +200,7 @@
 				38045D572561A7370004F23C /* SessionRow.swift */,
 				38045D592561AC000004F23C /* SessionList.swift */,
 				38E969CA2572608E00054CC4 /* NewSession.swift */,
+				BB0000072E000000000BBBBB /* SampleSession.swift */,
 				386E277725991163007D023B /* RecordButton.swift */,
 				38C17B22259D1C80006B3FDA /* SessionDetail.swift */,
 				387B57C125EC065600132903 /* InformationView.swift */,
@@ -263,6 +273,7 @@
 				38694C7226D2C66F00546EA1 /* DepthEncoder.swift */,
 				70D1234A2E1800000027BEEF /* DistortionEncoder.swift */,
 				AA0000002E000000000AAAAA /* LocationMetadataManager.swift */,
+				BB0000002E000000000BBBBB /* SampleLogger.swift */,
 				38694C7326D2C66F00546EA1 /* AppDaemon.swift */,
 			);
 			path = Helpers;
@@ -301,6 +312,7 @@
 			isa = PBXGroup;
 			children = (
 				38FB730E2572A9FA007D9CB0 /* RecordSessionViewController.swift */,
+				BB0000042E000000000BBBBB /* SamplePhotoViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -529,6 +541,9 @@
 				38694C8026D2C66F00546EA1 /* DepthEncoder.swift in Sources */,
 				70D1234B2E1800000027BEEF /* DistortionEncoder.swift in Sources */,
 				AA0000012E000000000AAAAA /* LocationMetadataManager.swift in Sources */,
+				BB0000012E000000000BBBBB /* SampleLogger.swift in Sources */,
+				BB0000032E000000000BBBBB /* SamplePhotoViewController.swift in Sources */,
+				BB0000062E000000000BBBBB /* SampleSession.swift in Sources */,
 				38C17B13259BE1DA006B3FDA /* Recording+CoreDataProperties.swift in Sources */,
 				38C17B12259BE1DA006B3FDA /* Recording+CoreDataClass.swift in Sources */,
 			);
@@ -562,6 +577,9 @@
 				38694C8126D2C66F00546EA1 /* DepthEncoder.swift in Sources */,
 				70D1234C2E1800000027BEEF /* DistortionEncoder.swift in Sources */,
 				AA0000022E000000000AAAAA /* LocationMetadataManager.swift in Sources */,
+				BB0000022E000000000BBBBB /* SampleLogger.swift in Sources */,
+				BB0000052E000000000BBBBB /* SamplePhotoViewController.swift in Sources */,
+				BB0000082E000000000BBBBB /* SampleSession.swift in Sources */,
 				3863FE6E25FCBB0E00C1DA4F /* Recording+CoreDataProperties.swift in Sources */,
 				3863FE6F25FCBB0E00C1DA4F /* Recording+CoreDataClass.swift in Sources */,
 			);
@@ -727,7 +745,7 @@
 				DEVELOPMENT_TEAM = C2R59JQ4JH;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = StrayScanner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -754,7 +772,7 @@
 				DEVELOPMENT_TEAM = C2R59JQ4JH;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = StrayScanner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

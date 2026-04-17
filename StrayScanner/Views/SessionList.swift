@@ -106,6 +106,20 @@ struct SessionList: View {
                     })
                     Spacer()
                 }
+                HStack {
+                    Spacer()
+                    NavigationLink(destination: SampleSessionView(), label: {
+                        Text("📷 Chụp ảnh mẫu")
+                            .font(.title3)
+                            .padding(20)
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(35)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                    })
+                    Spacer()
+                }
                 if (viewModel.sessions.isEmpty) {
                     Spacer()
                 }

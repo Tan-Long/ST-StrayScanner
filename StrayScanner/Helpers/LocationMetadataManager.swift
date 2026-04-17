@@ -102,6 +102,20 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
         return latestLocation
     }
 
+    /// The most recently received compass heading. Thread-safe; may be nil.
+    var currentHeading: CLHeading? {
+        lock.lock()
+        defer { lock.unlock() }
+        return latestHeading
+    }
+
+    /// The cached reverse-geocoded place name. Thread-safe; may be nil.
+    var currentPlaceName: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cachedPlaceName
+    }
+
     /// Returns a metadata snapshot synchronised with the given ARFrame.
     /// Safe to call from any thread.
     func snapshot(arFrame: ARFrame) -> FrameLocationMetadata {
