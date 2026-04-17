@@ -165,6 +165,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         }
         datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting])
         startRawIMU()
+        LocationMetadataManager.shared.start()
     }
 
     private func stopRecording() {
@@ -177,6 +178,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         updateLabelTimer = nil
         // Stop IMU updates
         stopRawIMU()
+        LocationMetadataManager.shared.stop()
         datasetEncoder?.wrapUp()
         if let encoder = datasetEncoder {
             switch encoder.status {
@@ -254,7 +256,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         self.renderer!.render(frame: frame)
         if startedRecording != nil {
             if let encoder = datasetEncoder {
-                encoder.add(frame: frame)
+                let locationMetadata = LocationMetadataManager.shared.snapshot(arFrame: frame)
+                encoder.add(frame: frame, locationMetadata: locationMetadata)
             } else {
                 print("There is no video encoder. That can't be good.")
             }

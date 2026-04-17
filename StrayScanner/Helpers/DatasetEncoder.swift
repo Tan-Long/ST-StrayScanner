@@ -11,6 +11,233 @@ import ARKit
 import CryptoKit
 import CoreMotion
 
+// MARK: - Location writers
+
+private class LocationCSVWriter {
+    private let fileHandle: FileHandle
+
+    init(url: URL) {
+        do {
+            try "".write(to: url, atomically: true, encoding: .utf8)
+            self.fileHandle = try FileHandle(forWritingTo: url)
+            let header = "timestamp_iso,timestamp_unix,latitude,longitude,altitude_asl_m,gps_accuracy_m,heading_degrees,heading_cardinal,place_name,locality,cam_yaw,cam_pitch,cam_roll,slope_degrees,gravity_x,gravity_y,gravity_z\n"
+            fileHandle.write(header.data(using: .utf8)!)
+        } catch let error {
+            print("Can't create location.csv: \(error.localizedDescription)")
+            preconditionFailure("Can't open location.csv for writing.")
+        }
+    }
+
+    func add(metadata: FrameLocationMetadata) {
+        let lat   = metadata.latitude.map           { "\($0)" } ?? ""
+        let lon   = metadata.longitude.map          { "\($0)" } ?? ""
+        let alt   = metadata.altitude_asl_m.map     { "\($0)" } ?? ""
+        let acc   = metadata.gps_accuracy_m.map     { "\($0)" } ?? ""
+        let hdg   = metadata.heading_degrees.map    { "\($0)" } ?? ""
+        let card  = metadata.heading_cardinal       ?? ""
+        // Sanitise free-text fields so they don't break CSV parsing
+        let place = (metadata.place_name   ?? "").replacingOccurrences(of: ",", with: ";")
+        let loc   = (metadata.locality     ?? "").replacingOccurrences(of: ",", with: ";")
+        let slope = metadata.slope_degrees.map  { "\($0)" } ?? ""
+        let gx    = metadata.gravity_x.map      { "\($0)" } ?? ""
+        let gy    = metadata.gravity_y.map      { "\($0)" } ?? ""
+        let gz    = metadata.gravity_z.map      { "\($0)" } ?? ""
+
+        let line = "\(metadata.timestamp_iso),\(metadata.timestamp_unix),\(lat),\(lon),\(alt),\(acc),\(hdg),\(card),\(place),\(loc),\(metadata.cam_yaw),\(metadata.cam_pitch),\(metadata.cam_roll),\(slope),\(gx),\(gy),\(gz)\n"
+        fileHandle.write(line.data(using: .utf8)!)
+    }
+
+    func done() {
+        do {
+            try fileHandle.close()
+        } catch let error {
+            print("Closing location.csv failed: \(error.localizedDescription)")
+        }
+    }
+}
+
+private class LocationJSONWriter {
+    private let url: URL
+    private var frames: [[String: Any]] = []
+
+    init(url: URL) {
+        self.url = url
+    }
+
+    func add(metadata: FrameLocationMetadata, frameNumber: Int) {
+        var dict: [String: Any] = [
+            "frame": frameNumber,
+            "timestamp_iso": metadata.timestamp_iso,
+            "timestamp_unix": metadata.timestamp_unix,
+            "cam_yaw": metadata.cam_yaw,
+            "cam_pitch": metadata.cam_pitch,
+            "cam_roll": metadata.cam_roll
+        ]
+        if let v = metadata.latitude          { dict["latitude"] = v }
+        if let v = metadata.longitude         { dict["longitude"] = v }
+        if let v = metadata.altitude_asl_m    { dict["altitude_asl_m"] = v }
+        if let v = metadata.gps_accuracy_m    { dict["gps_accuracy_m"] = v }
+        if let v = metadata.heading_degrees   { dict["heading_degrees"] = v }
+        if let v = metadata.heading_cardinal  { dict["heading_cardinal"] = v }
+        if let v = metadata.place_name        { dict["place_name"] = v }
+        if let v = metadata.locality          { dict["locality"] = v }
+        if let v = metadata.slope_degrees     { dict["slope_degrees"] = v }
+        if let v = metadata.gravity_x         { dict["gravity_x"] = v }
+        if let v = metadata.gravity_y         { dict["gravity_y"] = v }
+        if let v = metadata.gravity_z         { dict["gravity_z"] = v }
+        frames.append(dict)
+    }
+
+    func done() {
+        guard !frames.isEmpty else { return }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: frames, options: [.prettyPrinted])
+            try data.write(to: url)
+        } catch let error {
+            print("Could not write location.json: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Point cloud encoder
+
+private class PointCloudEncoder {
+    // Deduplicated by ARKit identifier; always stores the latest (most refined) position.
+    private var points: [UInt64: (position: simd_float3, confidence: Float)] = [:]
+    private var frameTransforms: [(frame: Int, timestamp: Double, transform: simd_float4x4)] = []
+    private let datasetDirectory: URL
+
+    init(datasetDirectory: URL) {
+        self.datasetDirectory = datasetDirectory
+        writeGPSAnchor()
+    }
+
+    func add(frame: ARFrame, frameNumber: Int) {
+        // Accumulate feature points; overwrite with latest position so the
+        // final PLY has the most refined coordinate for each tracked point.
+        if let cloud = frame.rawFeaturePoints {
+            let conf: Float = frame.capturedDepthData != nil ? 1.0 : 1.0
+            for (i, identifier) in cloud.identifiers.enumerated() {
+                points[identifier] = (position: cloud.points[i], confidence: conf)
+            }
+        }
+        frameTransforms.append((
+            frame: frameNumber,
+            timestamp: frame.timestamp,
+            transform: frame.camera.transform
+        ))
+    }
+
+    func done() {
+        writePLY()
+        writeFrameTransforms()
+    }
+
+    // MARK: - GPS anchor
+
+    private func writeGPSAnchor() {
+        let url = datasetDirectory.appendingPathComponent("tree_gps_anchor.json")
+        let location = LocationMetadataManager.shared.currentLocation
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoNow = formatter.string(from: Date())
+
+        var dict: [String: Any] = ["scan_start_iso": isoNow]
+        if let loc = location {
+            dict["anchor_lat"]        = loc.coordinate.latitude
+            dict["anchor_lon"]        = loc.coordinate.longitude
+            dict["anchor_alt"]        = loc.altitude
+            dict["anchor_accuracy_m"] = max(loc.horizontalAccuracy, 0)
+        } else {
+            dict["anchor_lat"]        = NSNull()
+            dict["anchor_lon"]        = NSNull()
+            dict["anchor_alt"]        = NSNull()
+            dict["anchor_accuracy_m"] = NSNull()
+        }
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: url)
+        } catch let error {
+            print("Could not write tree_gps_anchor.json: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Binary PLY
+
+    private func writePLY() {
+        let url = datasetDirectory.appendingPathComponent("point_cloud_raw.ply")
+        let pointList = Array(points.values)
+        let count = pointList.count
+
+        var header = ""
+        header += "ply\n"
+        header += "format binary_little_endian 1.0\n"
+        header += "element vertex \(count)\n"
+        header += "property float x\n"
+        header += "property float y\n"
+        header += "property float z\n"
+        header += "property float confidence\n"
+        header += "end_header\n"
+
+        var data = Data()
+        data.append(contentsOf: header.utf8)
+
+        for p in pointList {
+            appendF32LE(p.position.x, to: &data)
+            appendF32LE(p.position.y, to: &data)
+            appendF32LE(p.position.z, to: &data)
+            appendF32LE(p.confidence,  to: &data)
+        }
+
+        do {
+            try data.write(to: url)
+        } catch let error {
+            print("Could not write point_cloud_raw.ply: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Frame transforms CSV
+
+    private func writeFrameTransforms() {
+        let url = datasetDirectory.appendingPathComponent("frame_transforms.csv")
+        var csv = "frame,timestamp_unix,t_x,t_y,t_z,m00,m01,m02,m03,m10,m11,m12,m13,m20,m21,m22,m23,m30,m31,m32,m33\n"
+
+        for entry in frameTransforms {
+            let c = entry.transform.columns
+            // Translation (last column)
+            let tx = c.3.x, ty = c.3.y, tz = c.3.z
+            // Full matrix in row-major order: m_ij = columns[j][i]
+            // row 0: m00 m01 m02 m03
+            // row 1: m10 m11 m12 m13
+            // row 2: m20 m21 m22 m23
+            // row 3: m30 m31 m32 m33
+            let mat = "\(c.0.x),\(c.1.x),\(c.2.x),\(c.3.x)," +
+                      "\(c.0.y),\(c.1.y),\(c.2.y),\(c.3.y)," +
+                      "\(c.0.z),\(c.1.z),\(c.2.z),\(c.3.z)," +
+                      "\(c.0.w),\(c.1.w),\(c.2.w),\(c.3.w)"
+            csv += "\(entry.frame),\(entry.timestamp),\(tx),\(ty),\(tz),\(mat)\n"
+        }
+
+        do {
+            try csv.write(to: url, atomically: true, encoding: .utf8)
+        } catch let error {
+            print("Could not write frame_transforms.csv: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func appendF32LE(_ value: Float, to data: inout Data) {
+        // iOS ARM is little-endian; .littleEndian is a no-op here but makes intent explicit.
+        var v = value.bitPattern.littleEndian
+        withUnsafeBytes(of: &v) { data.append(contentsOf: $0) }
+    }
+}
+
+// MARK: - DatasetEncoder
+
 class DatasetEncoder {
     enum Status {
         case allGood
@@ -24,6 +251,9 @@ class DatasetEncoder {
     private let odometryEncoder: OdometryEncoder
     private let imuEncoder: IMUEncoder
     private let distortionEncoder: DistortionEncoder
+    private let locationCSVWriter: LocationCSVWriter
+    private let locationJSONWriter: LocationJSONWriter
+    private let pointCloudEncoder: PointCloudEncoder
     private var lastFrame: ARFrame?
     private var dispatchGroup = DispatchGroup()
     private var currentFrame: Int = -1
@@ -64,9 +294,14 @@ class DatasetEncoder {
         self.imuPath = datasetDirectory.appendingPathComponent("imu.csv", isDirectory: false)
         self.imuEncoder = IMUEncoder(url: self.imuPath)
         self.distortionEncoder = DistortionEncoder(datasetDirectory: datasetDirectory)
+        let locationCSVPath = datasetDirectory.appendingPathComponent("location.csv")
+        self.locationCSVWriter = LocationCSVWriter(url: locationCSVPath)
+        let locationJSONPath = datasetDirectory.appendingPathComponent("location.json")
+        self.locationJSONWriter = LocationJSONWriter(url: locationJSONPath)
+        self.pointCloudEncoder = PointCloudEncoder(datasetDirectory: datasetDirectory)
     }
 
-    func add(frame: ARFrame) {
+    func add(frame: ARFrame, locationMetadata: FrameLocationMetadata? = nil) {
         let totalFrames: Int = currentFrame
         currentFrame = currentFrame + 1
         if (currentFrame % frameInterval != 0) {
@@ -97,6 +332,11 @@ class DatasetEncoder {
             self.rgbEncoder.add(frame: VideoEncoderInput(buffer: frame.capturedImage, time: frame.timestamp), currentFrame: totalFrames)
             self.odometryEncoder.add(frame: frame, currentFrame: frameNumber)
             self.distortionEncoder.add(frame: frame, currentFrame: frameNumber)
+            if let meta = locationMetadata {
+                self.locationCSVWriter.add(metadata: meta)
+                self.locationJSONWriter.add(metadata: meta, frameNumber: frameNumber)
+            }
+            self.pointCloudEncoder.add(frame: frame, frameNumber: frameNumber)
             self.lastFrame = frame
         }
     }
@@ -140,6 +380,9 @@ class DatasetEncoder {
         self.imuEncoder.done()
         self.odometryEncoder.done()
         self.distortionEncoder.done()
+        self.locationCSVWriter.done()
+        self.locationJSONWriter.done()
+        self.pointCloudEncoder.done()
         writeIntrinsics()
         switch self.rgbEncoder.status {
             case .allGood:
