@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>For recording datasets.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>For recording GPS coordinates with each dataset frame.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>For recording GPS coordinates with each dataset frame.</string>
 	<key>NSMotionUsageDescription</key>

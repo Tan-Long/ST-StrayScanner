@@ -134,7 +134,8 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
 
         let now = Date()
         let timestamp_iso = isoFormatter.string(from: now)
-        let timestamp_unix = now.timeIntervalSince1970
+        // ARFrame.timestamp is seconds since device boot — use it for frame sync.
+        let timestamp_unix = arFrame.timestamp
 
         // Camera Euler angles (radians → degrees)
         let euler = arFrame.camera.eulerAngles
@@ -146,8 +147,8 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
         var heading_degrees: Double?
         var heading_cardinal: String?
         if let h = heading, h.headingAccuracy >= 0 {
-            heading_degrees = h.magneticHeading
-            heading_cardinal = Self.cardinal(for: h.magneticHeading)
+            heading_degrees = h.trueHeading
+            heading_cardinal = Self.cardinal(for: h.trueHeading)
         }
 
         // Gravity and slope from CMDeviceMotion

@@ -163,9 +163,11 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         updateLabelTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             self.updateTime()
         }
+        // Start location/motion before DatasetEncoder so writeGPSAnchor() sees a
+        // fresh location fix rather than a stale or nil value.
+        LocationMetadataManager.shared.start()
         datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting])
         startRawIMU()
-        LocationMetadataManager.shared.start()
     }
 
     private func stopRecording() {

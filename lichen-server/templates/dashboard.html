@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — {{ tree_id }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🌿 Kết quả phân tích / Analysis Results</h1>
+    <p class="subtitle">{{ tree_id }}</p>
+    <a href="/" class="back-link">← Tải lên scan mới</a>
+  </header>
+
+  <main class="dashboard">
+
+    {% if errors %}
+    <div class="error-banner small">
+      <strong>⚠️ Một số bước xử lý gặp lỗi / Some pipeline steps had errors:</strong>
+      <ul>{% for k, v in errors.items() %}<li><code>{{ k }}</code>: {{ v }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <!-- Section 1: Summary cards -->
+    <section class="cards">
+      <div class="card">
+        <div class="card-icon">🌳</div>
+        <div class="card-label">DBH</div>
+        <div class="card-value">
+          {% if trunk.dbh_cm %}{{ "%.1f"|format(trunk.dbh_cm) }} cm{% else %}N/A{% endif %}
+        </div>
+        {% if trunk.dbh_rmse_cm %}<div class="card-sub">±{{ "%.1f"|format(trunk.dbh_rmse_cm) }} cm RMSE</div>{% endif %}
+      </div>
+      <div class="card">
+        <div class="card-icon">⛰️</div>
+        <div class="card-label">Altitude / Độ cao</div>
+        <div class="card-value">{{ "%.0f"|format(trunk.tree_alt_m) }} m a.s.l.</div>
+        <div class="card-sub">{{ "%.5f"|format(trunk.tree_lat) }}°N, {{ "%.5f"|format(trunk.tree_lon) }}°E</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧭</div>
+        <div class="card-label">Aspect / Hướng mặt</div>
+        <div class="card-value">{{ trunk.aspect_8pt }}</div>
+        <div class="card-sub">{{ "%.0f"|format(trunk.trunk_azimuth_deg) }}° — {{ trunk.aspect_16pt }}</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌿</div>
+        <div class="card-label">Lichen Coverage</div>
+        <div class="card-value">
+          {% if lichen.coverage_pct is not none %}{{ "%.1f"|format(lichen.coverage_pct) }}%{% else %}N/A{% endif %}
+        </div>
+        {% if lichen.area_cm2 %}<div class="card-sub">~{{ "%.0f"|format(lichen.area_cm2) }} cm²</div>{% endif %}
+      </div>
+    </section>
+
+    <!-- Section 2: 3D Point Cloud -->
+    <section class="section">
+      <h2>☁️ Đám mây điểm 3D / 3D Point Cloud</h2>
+      <div id="pointcloud" class="chart-tall"></div>
+    </section>
+
+    <!-- Section 3: Lichen distribution -->
+    <section class="section">
+      <h2>🌿 Phân bố địa y / Lichen Distribution by Aspect</h2>
+      <div id="lichenpolar" class="chart"></div>
+      {% if lichen.note %}
+      <p class="note">📝 {{ lichen.note }}</p>
+      {% endif %}
+      {% if lichen.n_frames_analyzed %}
+      <p class="note">Frames analyzed: {{ lichen.n_frames_analyzed }}</p>
+      {% endif %}
+    </section>
+
+    <!-- Section 4: Solar + Wind -->
+    <section class="section">
+      <h2>☀️ Phơi sáng & Gió / Solar and Wind Exposure</h2>
+      <div class="two-col">
+        <div>
+          <h3>
+            Solar ·
+            {% if solar.solar_classification %}
+              <span class="badge">{{ solar.solar_classification }}</span>
+            {% endif %}
+            {% if solar.sun_facing_fraction is not none %}
+              ({{ "%.0f"|format(solar.sun_facing_fraction * 100) }}% avg)
+            {% endif %}
+          </h3>
+          {% if solar.peak_solar_month %}<p class="note">Peak: {{ solar.peak_solar_month }}</p>{% endif %}
+          <div id="solar" class="chart"></div>
+        </div>
+        <div>
+          <h3>
+            Wind Rose ·
+            {% if wind.wind_classification %}
+              <span class="badge">{{ wind.wind_classification }}</span>
+            {% endif %}
+            {% if wind.dominant_wind_dir_cardinal %}
+              dominant {{ wind.dominant_wind_dir_cardinal }}
+              ({{ "%.1f"|format(wind.dominant_wind_dir_deg) }}°)
+            {% endif %}
+          </h3>
+          {% if wind.mean_wind_speed_kmh %}<p class="note">Mean speed: {{ "%.1f"|format(wind.mean_wind_speed_kmh) }} km/h · {{ wind.date_range }}</p>{% endif %}
+          {% if wind.error_message %}<p class="note warn">⚠️ Wind data unavailable: {{ wind.error_message }}</p>{% endif %}
+          <div id="windrose" class="chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Map -->
+    <section class="section">
+      <h2>🗺️ Vị trí cây / Tree Location</h2>
+      <div id="map" class="chart"></div>
+    </section>
+
+    <!-- Section 6: Raw data -->
+    <section class="section">
+      <h2>📄 Dữ liệu thô / Raw Metadata</h2>
+      <details>
+        <summary>Xem / View tree_metadata.json</summary>
+        <pre class="json-block">{{ tree_metadata_json }}</pre>
+      </details>
+      <a class="download-btn"
+         href="data:application/json;charset=utf-8,{{ tree_metadata_json | urlencode }}"
+         download="tree_metadata.json">
+        ⬇️ Tải tree_metadata.json
+      </a>
+    </section>
+
+  </main>
+
+  <script>
+    // --- Point cloud ---
+    const pts = {{ points_json | safe }};
+    if (pts.x && pts.x.length > 0) {
+      Plotly.newPlot('pointcloud', [{
+        type: 'scatter3d',
+        x: pts.x, y: pts.y, z: pts.z,
+        mode: 'markers',
+        marker: { size: 2, color: pts.z, colorscale: 'Viridis',
+                  colorbar: { title: 'Height (m)' } }
+      }], {
+        scene: { aspectmode: 'data' },
+        margin: { l: 0, r: 0, t: 30, b: 0 },
+        title: 'Point Cloud — {{ tree_id }}'
+      }, { responsive: true });
+    } else {
+      document.getElementById('pointcloud').innerHTML = '<p class="note">No point cloud data available.</p>';
+    }
+
+    // --- Lichen polar ---
+    const byAspect = {{ lichen_by_aspect_json | safe }};
+    const dirs8 = ['N','NE','E','SE','S','SW','W','NW'];
+    const lichenR = dirs8.map(d => byAspect[d] || 0);
+    lichenR.push(lichenR[0]); // close polygon
+    const lichenTheta = [...dirs8, 'N'];
+    Plotly.newPlot('lichenpolar', [{
+      type: 'scatterpolar',
+      r: lichenR, theta: lichenTheta,
+      fill: 'toself',
+      fillcolor: 'rgba(46,117,182,0.3)',
+      line: { color: '#2E75B6' },
+      name: 'Lichen coverage %'
+    }], {
+      polar: { radialaxis: { visible: true, range: [0, 100] } },
+      title: 'Phân bố địa y theo hướng',
+      margin: { l: 40, r: 40, t: 50, b: 40 }
+    }, { responsive: true });
+
+    // --- Solar bar ---
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthlyFacing = {{ monthly_facing_json | safe }};
+    Plotly.newPlot('solar', [{
+      type: 'bar', x: monthNames, y: monthlyFacing,
+      marker: { color: '#F59E0B' },
+      name: 'Sun-facing fraction'
+    }], {
+      title: 'Solar exposure theo tháng',
+      yaxis: { range: [0, 1], title: 'Facing fraction' },
+      margin: { l: 50, r: 20, t: 50, b: 40 }
+    }, { responsive: true });
+
+    // --- Wind rose ---
+    const windRose = {{ wind_rose_json | safe }};
+    const windCounts = dirs8.map(d => windRose[d] || 0);
+    Plotly.newPlot('windrose', [{
+      type: 'barpolar',
+      r: windCounts, theta: dirs8,
+      marker: { color: '#3B82F6' },
+      name: 'Wind frequency'
+    }], {
+      title: 'Wind rose (hướng gió)',
+      margin: { l: 40, r: 40, t: 50, b: 40 }
+    }, { responsive: true });
+
+    // --- Map ---
+    const lat = {{ trunk.tree_lat }};
+    const lon = {{ trunk.tree_lon }};
+    const map = L.map('map').setView([lat, lon], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const dbh = {{ trunk.dbh_cm or 'null' }};
+    const alt = {{ trunk.tree_alt_m }};
+    const aspect = '{{ trunk.aspect_8pt }}';
+    const lichenCov = {{ lichen.coverage_pct or 'null' }};
+    const treeId = '{{ tree_id }}';
+
+    L.marker([lat, lon])
+      .bindPopup(`
+        <b>${treeId}</b><br>
+        DBH: ${dbh !== null ? dbh.toFixed(1) + ' cm' : 'N/A'}<br>
+        Altitude: ${alt.toFixed(0)} m a.s.l.<br>
+        Lichen: ${lichenCov !== null ? lichenCov.toFixed(1) + '%' : 'N/A'}<br>
+        Aspect: ${aspect}
+      `)
+      .openPopup()
+      .addTo(map);
+
+    // Aspect arrow
+    const azimuth = {{ trunk.trunk_azimuth_deg }};
+    const arrowLen = 0.0002;
+    const endLat = lat + arrowLen * Math.cos(azimuth * Math.PI / 180);
+    const endLon = lon + arrowLen * Math.sin(azimuth * Math.PI / 180);
+    L.polyline([[lat, lon], [endLat, endLon]], { color: '#2E75B6', weight: 3 })
+      .bindTooltip(`Trunk aspect: ${aspect} (${azimuth.toFixed(0)}°)`)
+      .addTo(map);
+  </script>
+</body>
+</html>

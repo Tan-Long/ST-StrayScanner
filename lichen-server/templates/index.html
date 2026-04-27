@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lichen Analysis — Stray Scanner</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>🌿 Phân tích địa y / Lichen Analysis</h1>
+    <p class="subtitle">Stray Scanner Tree Dataset Analyzer</p>
+  </header>
+
+  <main>
+    {% if error %}
+    <div class="error-banner">
+      <strong>⚠️ {{ error }}</strong>
+      {% if missing_files %}
+      <p>File bị thiếu / Missing files:</p>
+      <ul>
+        {% for f in missing_files %}<li><code>{{ f }}</code></li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if present_files %}
+      <details>
+        <summary>Files found in ZIP</summary>
+        <ul>{% for f in present_files %}<li><code>{{ f }}</code></li>{% endfor %}</ul>
+      </details>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="upload-card">
+      <form id="uploadForm" action="/analyze" method="post" enctype="multipart/form-data">
+        <div class="dropzone" id="dropzone">
+          <span class="drop-icon">📁</span>
+          <span>Kéo thả file ZIP hoặc <u>click để chọn</u></span>
+        </div>
+        <input type="file" id="fileInput" name="file" accept=".zip" hidden>
+        <div id="fileName" class="file-name"></div>
+        <button type="submit" id="analyzeBtn" disabled>🔬 Phân tích</button>
+        <div id="progress" class="progress hidden">
+          <div class="spinner"></div>
+          <span>Đang xử lý... vui lòng đợi (30–60 giây)</span>
+        </div>
+      </form>
+    </div>
+
+    <div class="requirements">
+      <h3>📋 File ZIP cần chứa:</h3>
+      <ul>
+        <li><code>point_cloud_raw.ply</code> <span class="req-badge required">required</span></li>
+        <li><code>location.csv</code> <span class="req-badge required">required</span></li>
+        <li><code>tree_gps_anchor.json</code> <span class="req-badge required">required</span></li>
+        <li><code>rgb.mp4</code> <span class="req-badge optional">optional — for lichen detection</span></li>
+        <li><code>location.json</code> <span class="req-badge optional">optional</span></li>
+        <li><code>frame_transforms.csv</code> <span class="req-badge optional">optional</span></li>
+      </ul>
+    </div>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const fileNameEl = document.getElementById('fileName');
+    const progress = document.getElementById('progress');
+    const form = document.getElementById('uploadForm');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) {
+        fileInput.files = e.dataTransfer.files;
+        setFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(f) {
+      fileNameEl.textContent = `✅ ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`;
+      analyzeBtn.disabled = false;
+    }
+
+    form.addEventListener('submit', () => {
+      analyzeBtn.disabled = true;
+      progress.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

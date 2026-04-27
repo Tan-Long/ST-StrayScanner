@@ -116,7 +116,7 @@ private class PointCloudEncoder {
         // Accumulate feature points; overwrite with latest position so the
         // final PLY has the most refined coordinate for each tracked point.
         if let cloud = frame.rawFeaturePoints {
-            let conf: Float = frame.capturedDepthData != nil ? 1.0 : 1.0
+            let conf: Float = frame.capturedDepthData != nil ? 1.0 : 0.5
             for (i, identifier) in cloud.identifiers.enumerated() {
                 points[identifier] = (position: cloud.points[i], confidence: conf)
             }
