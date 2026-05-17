@@ -28,9 +28,11 @@ final class StrayScannerUITests: XCTestCase {
         waitForRecordScreen(app: app)
         tapImportantFlag(app: app)
         tapRecordButton(app: app)
+        handleSystemPermissions(app: app)
         sleep(UInt32(recordDuration))
         tapRecordButton(app: app)
-        sleep(5)
+        let returnedNewSessionButton = app.buttons["sessionList.recordNewSession"]
+        XCTAssertTrue(returnedNewSessionButton.waitForExistence(timeout: 30), "Recording did not finish and return to the session list.")
     }
 
     private func handleSystemPermissions(app: XCUIApplication) {
