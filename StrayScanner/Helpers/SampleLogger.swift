@@ -22,6 +22,7 @@ struct SampleRecord {
 
 class SampleLogger {
     static let shared = SampleLogger()
+    private static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
 
     private let samplesDir: URL
     private let csvURL: URL
@@ -77,7 +78,9 @@ class SampleLogger {
 
     func append(record: SampleRecord) throws {
         if !FileManager.default.fileExists(atPath: csvURL.path) {
-            try Self.csvHeader.write(to: csvURL, atomically: true, encoding: .utf8)
+            var data = Self.utf8BOM
+            data.append(contentsOf: Self.csvHeader.utf8)
+            try data.write(to: csvURL, options: .atomic)
         }
 
         let lat = record.latitude.map  { String($0) } ?? ""
@@ -105,12 +108,17 @@ class SampleLogger {
     // MARK: - XLSX (TSV fallback)
 
     func exportXLSX() {
-        guard let csvString = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
+        guard var csvString = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
+        if csvString.hasPrefix("\u{FEFF}") {
+            csvString.removeFirst()
+        }
+        var tsvData = Self.utf8BOM
         let tsv = csvString
             .components(separatedBy: "\n")
             .map { parseCSVRow($0).joined(separator: "\t") }
             .joined(separator: "\n")
-        try? tsv.write(to: xlsxURL, atomically: true, encoding: .utf8)
+        tsvData.append(contentsOf: tsv.utf8)
+        try? tsvData.write(to: xlsxURL, options: .atomic)
     }
 
     // MARK: - Private helpers

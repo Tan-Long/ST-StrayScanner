@@ -311,11 +311,10 @@ class SamplePhotoViewController: UIViewController {
     }
 
     private func cardinal(for degrees: Double) -> String {
-        let dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE",
-                    "S","SSW","SW","WSW","W","WNW","NW","NNW"]
+        let dirs = ["N","NE","E","SE","S","SW","W","NW"]
         var d = degrees.truncatingRemainder(dividingBy: 360)
         if d < 0 { d += 360 }
-        return dirs[Int((d + 11.25) / 22.5) % 16]
+        return dirs[Int((d + 22.5) / 45.0) % 8]
     }
 
     // MARK: - Sample ID

@@ -40,6 +40,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
     private var datasetEncoder: DatasetEncoder?
     private let imuOperationQueue = OperationQueue()
     private var chosenFpsSetting: Int = 0
+    private var isImportantTree: Bool = false
+    private let importantButton = UIButton(type: .system)
     @IBOutlet private var rgbView: MetalView!
     @IBOutlet private var depthView: MetalView!
     @IBOutlet private var recordButton: RecordButton!
@@ -64,6 +66,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         rgbView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(viewTapped)))
         
         setViewProperties()
+        configureImportantButton()
+        setAccessibilityIdentifiers()
         session.delegate = self
 
         recordButton.setCallback { (recording: Bool) in
@@ -166,7 +170,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         // Start location/motion before DatasetEncoder so writeGPSAnchor() sees a
         // fresh location fix rather than a stale or nil value.
         LocationMetadataManager.shared.start()
-        datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting])
+        importantButton.isEnabled = false
+        datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting], isImportant: isImportantTree)
         startRawIMU()
     }
 
@@ -182,6 +187,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         stopRawIMU()
         LocationMetadataManager.shared.stop()
         datasetEncoder?.wrapUp()
+        importantButton.isEnabled = true
         if let encoder = datasetEncoder {
             switch encoder.status {
                 case .allGood:
@@ -195,6 +201,12 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
             print("No dataset encoder. Something is wrong.")
         }
         self.dismissFunction?()
+    }
+
+    @objc private func importantButtonTapped() {
+        guard startedRecording == nil else { return }
+        isImportantTree.toggle()
+        updateImportantButton()
     }
 
     private func saveRecording(_ started: Date, _ encoder: DatasetEncoder) {
@@ -268,6 +280,46 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
 
     private func setViewProperties() {
         self.view.backgroundColor = UIColor(named: "BackgroundColor")
+    }
+
+    private func configureImportantButton() {
+        importantButton.translatesAutoresizingMaskIntoConstraints = false
+        importantButton.titleLabel?.font = UIFont.systemFont(ofSize: 30, weight: .semibold)
+        importantButton.layer.cornerRadius = 12.0
+        importantButton.layer.masksToBounds = true
+        importantButton.addTarget(self, action: #selector(importantButtonTapped), for: .touchUpInside)
+        view.addSubview(importantButton)
+
+        NSLayoutConstraint.activate([
+            importantButton.centerYAnchor.constraint(equalTo: fpsButton.centerYAnchor),
+            importantButton.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            importantButton.widthAnchor.constraint(equalToConstant: 54),
+            importantButton.heightAnchor.constraint(equalToConstant: 34)
+        ])
+
+        updateImportantButton()
+    }
+
+    private func updateImportantButton() {
+        importantButton.setTitle(isImportantTree ? "*" : "☆", for: .normal)
+        importantButton.backgroundColor = isImportantTree ? UIColor.systemYellow : UIColor(named: "DarkColor")
+        importantButton.setTitleColor(isImportantTree ? UIColor.black : UIColor(named: "LightColor"), for: .normal)
+        importantButton.accessibilityValue = isImportantTree ? "Important" : "Normal"
+    }
+
+    private func setAccessibilityIdentifiers() {
+        view.accessibilityIdentifier = "recordSession.screen"
+        rgbView.accessibilityIdentifier = "recordSession.rgbView"
+        depthView.accessibilityIdentifier = "recordSession.depthView"
+        recordButton.isAccessibilityElement = true
+        recordButton.accessibilityIdentifier = "recordSession.recordButton"
+        recordButton.accessibilityLabel = "Record"
+        recordButton.accessibilityTraits = [.button]
+        timeLabel.accessibilityIdentifier = "recordSession.timeLabel"
+        fpsButton.accessibilityIdentifier = "recordSession.fpsButton"
+        importantButton.accessibilityIdentifier = "recordSession.importantButton"
+        importantButton.accessibilityLabel = "Important tree"
+        importantButton.accessibilityTraits = [.button]
     }
     
     private func updateFpsSetting() {

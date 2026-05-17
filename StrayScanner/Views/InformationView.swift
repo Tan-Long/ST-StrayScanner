@@ -31,11 +31,11 @@ The recorded datasets can be exported in several ways:
 1. Share directly from the app: Tap the "Share" button inside any recording to export it as a ZIP archive via AirDrop, email, or save to Files.
 
 2. Connect your device with the lightning cable:
-   • On Mac, access files through Finder sidebar > your device > "Files" tab > Stray Scanner
+   • On Mac, access files through Finder sidebar > your device > "Files" tab > Stray Scanner TestLab
    • On Windows, access files through iTunes
    • Drag folders to your desired location (one folder per dataset)
 
-3. Use the Files app: Browse > On My iPhone > Stray Scanner, then export to another app or iCloud drive.
+3. Use the Files app: Browse > On My iPhone > Stray Scanner TestLab, then export to another app or iCloud drive.
 """)
 }
                 Group {

@@ -71,7 +71,9 @@ struct SessionList: View {
                             .padding(.top, 17)
                             .padding(.trailing, 20)
                             .foregroundColor(Color("TextColor"))
-                    }).sheet(isPresented: $showingInfo) {
+                    })
+                    .accessibilityIdentifier("sessionList.infoButton")
+                    .sheet(isPresented: $showingInfo) {
                         InformationView()
                     }
                 }
@@ -104,6 +106,7 @@ struct SessionList: View {
                             .cornerRadius(35)
                             .padding(20)
                     })
+                    .accessibilityIdentifier("sessionList.recordNewSession")
                     Spacer()
                 }
                 HStack {
@@ -118,6 +121,7 @@ struct SessionList: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 8)
                     })
+                    .accessibilityIdentifier("sessionList.samplePhoto")
                     Spacer()
                 }
                 if (viewModel.sessions.isEmpty) {

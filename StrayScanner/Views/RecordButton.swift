@@ -41,6 +41,11 @@ class RecordButton : UIView {
         self.callback?(self.recording)
     }
 
+    override func accessibilityActivate() -> Bool {
+        buttonPressed()
+        return true
+    }
+
     private func setup() {
         drawInner()
         drawEdge()

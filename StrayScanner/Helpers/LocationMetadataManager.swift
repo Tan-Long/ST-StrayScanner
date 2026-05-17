@@ -58,8 +58,7 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
     }()
 
     private static let cardinalDirections = [
-        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+        "N", "NE", "E", "SE", "S", "SW", "W", "NW"
     ]
 
     private override init() {
@@ -216,7 +215,7 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
     private static func cardinal(for degrees: Double) -> String {
         var d = degrees.truncatingRemainder(dividingBy: 360)
         if d < 0 { d += 360 }
-        let index = Int((d + 11.25) / 22.5) % 16
+        let index = Int((d + 22.5) / 45.0) % 8
         return cardinalDirections[index]
     }
 
