@@ -66,10 +66,12 @@
 		38E969CB2572608E00054CC4 /* NewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E969CA2572608E00054CC4 /* NewSession.swift */; };
 		38FB730F2572A9FA007D9CB0 /* RecordSessionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38FB730E2572A9FA007D9CB0 /* RecordSessionViewController.swift */; };
 		38FB73162572AF63007D9CB0 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 38FB73152572AF63007D9CB0 /* Shaders.metal */; };
+		6D87EA4831A024285B3294D4 /* StrayScannerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36613E589BCEA61B60ECE640 /* StrayScannerUITests.swift */; };
 		709259192E0B79AB00A7B62E /* ShareUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709259182E0B79AB00A7B62E /* ShareUtility.swift */; };
 		70CF35492E17803700276207 /* ShareUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 709259182E0B79AB00A7B62E /* ShareUtility.swift */; };
 		70D1234B2E1800000027BEEF /* DistortionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D1234A2E1800000027BEEF /* DistortionEncoder.swift */; };
 		70D1234C2E1800000027BEEF /* DistortionEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70D1234A2E1800000027BEEF /* DistortionEncoder.swift */; };
+		7402E560D8F07BC8CACF4ED6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 89A69B388E45CA6E6D6C3266 /* Foundation.framework */; };
 		AA0000012E000000000AAAAA /* LocationMetadataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000002E000000000AAAAA /* LocationMetadataManager.swift */; };
 		AA0000022E000000000AAAAA /* LocationMetadataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000002E000000000AAAAA /* LocationMetadataManager.swift */; };
 		BB0000012E000000000BBBBB /* SampleLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000002E000000000BBBBB /* SampleLogger.swift */; };
@@ -88,10 +90,18 @@
 			remoteGlobalIDString = 385999B825616F2A00F3F681;
 			remoteInfo = StrayScanner;
 		};
+		D73A6318B0241FFE63E8A5B0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 385999B125616F2A00F3F681 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 385999B825616F2A00F3F681;
+			remoteInfo = StrayScanner;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		09A6D95A8151C51C3ECF4131 /* Pods-StrayScanner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StrayScanner.release.xcconfig"; path = "Target Support Files/Pods-StrayScanner/Pods-StrayScanner.release.xcconfig"; sourceTree = "<group>"; };
+		36613E589BCEA61B60ECE640 /* StrayScannerUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StrayScannerUITests.swift; sourceTree = "<group>"; };
 		38045D572561A7370004F23C /* SessionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRow.swift; sourceTree = "<group>"; };
 		38045D592561AC000004F23C /* SessionList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionList.swift; sourceTree = "<group>"; };
 		3807420A27BBCE83003194C1 /* PngEncoder.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PngEncoder.mm; sourceTree = "<group>"; };
@@ -133,12 +143,15 @@
 		38FB73242573ECE2007D9CB0 /* BridgeHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BridgeHeader.h; path = StrayScanner/BridgeHeader.h; sourceTree = "<group>"; };
 		709259182E0B79AB00A7B62E /* ShareUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareUtility.swift; sourceTree = "<group>"; };
 		70D1234A2E1800000027BEEF /* DistortionEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistortionEncoder.swift; sourceTree = "<group>"; };
+		89A69B388E45CA6E6D6C3266 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		AA0000002E000000000AAAAA /* LocationMetadataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationMetadataManager.swift; sourceTree = "<group>"; };
+		AC52749A3B5AED09C9753120 /* Pods-StrayScanner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StrayScanner.debug.xcconfig"; path = "Target Support Files/Pods-StrayScanner/Pods-StrayScanner.debug.xcconfig"; sourceTree = "<group>"; };
 		BB0000002E000000000BBBBB /* SampleLogger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SampleLogger.swift; sourceTree = "<group>"; };
 		BB0000042E000000000BBBBB /* SamplePhotoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SamplePhotoViewController.swift; sourceTree = "<group>"; };
 		BB0000072E000000000BBBBB /* SampleSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SampleSession.swift; sourceTree = "<group>"; };
-		AC52749A3B5AED09C9753120 /* Pods-StrayScanner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StrayScanner.debug.xcconfig"; path = "Target Support Files/Pods-StrayScanner/Pods-StrayScanner.debug.xcconfig"; sourceTree = "<group>"; };
+		D88AE90B791DD6FF053B0B9E /* StrayScannerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StrayScannerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBC054EDDA47FB8A717AA671 /* Pods_StrayScanner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_StrayScanner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		E2259D6DDA5E799ECDF80C73 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +175,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		45AF001B5AD61774C49AA6BF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7402E560D8F07BC8CACF4ED6 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,6 +238,7 @@
 				385999BA25616F2B00F3F681 /* Products */,
 				0905A155A958CE7B22575DF5 /* Pods */,
 				41382767AE5D9ABDCEFAD16D /* Frameworks */,
+				B7FFDC957BE9E79491CCFCDF /* StrayScannerUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -226,6 +248,7 @@
 				385999B925616F2B00F3F681 /* StrayScanner.app */,
 				387B577E25EA5BB900132903 /* StrayScannerTests.xctest */,
 				3863FE7E25FCBB0E00C1DA4F /* StrayScanner debug.app */,
+				D88AE90B791DD6FF053B0B9E /* StrayScannerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -330,13 +353,50 @@
 			isa = PBXGroup;
 			children = (
 				DBC054EDDA47FB8A717AA671 /* Pods_StrayScanner.framework */,
+				C7ADB7B7B3C12A39C77EEA55 /* iOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B7FFDC957BE9E79491CCFCDF /* StrayScannerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				36613E589BCEA61B60ECE640 /* StrayScannerUITests.swift */,
+				E2259D6DDA5E799ECDF80C73 /* Info.plist */,
+			);
+			name = StrayScannerUITests;
+			path = StrayScannerUITests;
+			sourceTree = "<group>";
+		};
+		C7ADB7B7B3C12A39C77EEA55 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				89A69B388E45CA6E6D6C3266 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		28427F5A0888FD298B1DCEFD /* StrayScannerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BBDC1CE45292EB0313F4ADB8 /* Build configuration list for PBXNativeTarget "StrayScannerUITests" */;
+			buildPhases = (
+				76AA118386EAD20356A3AECE /* Sources */,
+				45AF001B5AD61774C49AA6BF /* Frameworks */,
+				A12EA81C2E11795EF1A1B6ED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BCDAB63D3D08D28DDCD9D7A3 /* PBXTargetDependency */,
+			);
+			name = StrayScannerUITests;
+			productName = StrayScannerUITests;
+			productReference = D88AE90B791DD6FF053B0B9E /* StrayScannerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		385999B825616F2A00F3F681 /* StrayScanner */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 385999DB25616F3100F3F681 /* Build configuration list for PBXNativeTarget "StrayScanner" */;
@@ -427,6 +487,7 @@
 				385999B825616F2A00F3F681 /* StrayScanner */,
 				387B577D25EA5BB900132903 /* StrayScannerTests */,
 				3863FE5A25FCBB0E00C1DA4F /* StrayScanner debug */,
+				28427F5A0888FD298B1DCEFD /* StrayScannerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -457,6 +518,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		387B577C25EA5BB900132903 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A12EA81C2E11795EF1A1B6ED /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -593,6 +661,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		76AA118386EAD20356A3AECE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D87EA4831A024285B3294D4 /* StrayScannerUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -600,6 +676,12 @@
 			isa = PBXTargetDependency;
 			target = 385999B825616F2A00F3F681 /* StrayScanner */;
 			targetProxy = 387B578325EA5BB900132903 /* PBXContainerItemProxy */;
+		};
+		BCDAB63D3D08D28DDCD9D7A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = StrayScanner;
+			target = 385999B825616F2A00F3F681 /* StrayScanner */;
+			targetProxy = D73A6318B0241FFE63E8A5B0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -615,6 +697,25 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		0D806A3CDA9B269C6357E0F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
+				INFOPLIST_FILE = StrayScannerUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = StrayScanner;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		385999D925616F3100F3F681 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -742,7 +843,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"StrayScanner/Preview Content\"";
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = StrayScanner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
@@ -751,7 +852,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.StrayScanner;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = StrayScanner/BridgeHeader.h;
@@ -769,7 +870,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"StrayScanner/Preview Content\"";
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = StrayScanner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
@@ -778,7 +879,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.StrayScanner;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = StrayScanner/BridgeHeader.h;
@@ -795,7 +896,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"StrayScanner/Preview Content\"";
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "StrayScanner/Info-debug.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
@@ -804,7 +905,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.strayscanner.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = StrayScanner/BridgeHeader.h;
@@ -821,7 +922,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"StrayScanner/Preview Content\"";
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "StrayScanner/Info-debug.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
@@ -830,7 +931,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.strayscanner.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = StrayScanner/BridgeHeader.h;
@@ -846,7 +947,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				INFOPLIST_FILE = StrayScannerTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -854,7 +955,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.strayscanner.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -870,7 +971,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = C2R59JQ4JH;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
 				INFOPLIST_FILE = StrayScannerTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -878,13 +979,31 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.longtan.strayscanner.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,6";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StrayScanner.app/StrayScanner";
 			};
 			name = Release;
+		};
+		3FEF15AFA724317CF94D5FFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 7VHNLF4A5M;
+				INFOPLIST_FILE = StrayScannerUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anhnguyen.strayscanner.testlab.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = StrayScanner;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -921,6 +1040,15 @@
 			buildConfigurations = (
 				387B578625EA5BB900132903 /* Debug */,
 				387B578725EA5BB900132903 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BBDC1CE45292EB0313F4ADB8 /* Build configuration list for PBXNativeTarget "StrayScannerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D806A3CDA9B269C6357E0F3 /* Release */,
+				3FEF15AFA724317CF94D5FFD /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

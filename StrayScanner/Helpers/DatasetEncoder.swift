@@ -8,19 +8,20 @@
 
 import Foundation
 import ARKit
-import CryptoKit
 import CoreMotion
 
 // MARK: - Location writers
 
 private class LocationCSVWriter {
     private let fileHandle: FileHandle
+    private static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
 
     init(url: URL) {
         do {
             try "".write(to: url, atomically: true, encoding: .utf8)
             self.fileHandle = try FileHandle(forWritingTo: url)
             let header = "timestamp_iso,timestamp_unix,latitude,longitude,altitude_asl_m,gps_accuracy_m,heading_degrees,heading_cardinal,place_name,locality,cam_yaw,cam_pitch,cam_roll,slope_degrees,gravity_x,gravity_y,gravity_z\n"
+            fileHandle.write(Self.utf8BOM)
             fileHandle.write(header.data(using: .utf8)!)
         } catch let error {
             print("Can't create location.csv: \(error.localizedDescription)")
@@ -35,16 +36,41 @@ private class LocationCSVWriter {
         let acc   = metadata.gps_accuracy_m.map     { "\($0)" } ?? ""
         let hdg   = metadata.heading_degrees.map    { "\($0)" } ?? ""
         let card  = metadata.heading_cardinal       ?? ""
-        // Sanitise free-text fields so they don't break CSV parsing
-        let place = (metadata.place_name   ?? "").replacingOccurrences(of: ",", with: ";")
-        let loc   = (metadata.locality     ?? "").replacingOccurrences(of: ",", with: ";")
+        let place = metadata.place_name   ?? ""
+        let loc   = metadata.locality     ?? ""
         let slope = metadata.slope_degrees.map  { "\($0)" } ?? ""
         let gx    = metadata.gravity_x.map      { "\($0)" } ?? ""
         let gy    = metadata.gravity_y.map      { "\($0)" } ?? ""
         let gz    = metadata.gravity_z.map      { "\($0)" } ?? ""
 
-        let line = "\(metadata.timestamp_iso),\(metadata.timestamp_unix),\(lat),\(lon),\(alt),\(acc),\(hdg),\(card),\(place),\(loc),\(metadata.cam_yaw),\(metadata.cam_pitch),\(metadata.cam_roll),\(slope),\(gx),\(gy),\(gz)\n"
+        let fields = [
+            metadata.timestamp_iso,
+            "\(metadata.timestamp_unix)",
+            lat,
+            lon,
+            alt,
+            acc,
+            hdg,
+            card,
+            place,
+            loc,
+            "\(metadata.cam_yaw)",
+            "\(metadata.cam_pitch)",
+            "\(metadata.cam_roll)",
+            slope,
+            gx,
+            gy,
+            gz
+        ]
+        let line = fields.map(Self.csvField).joined(separator: ",") + "\n"
         fileHandle.write(line.data(using: .utf8)!)
+    }
+
+    private static func csvField(_ value: String) -> String {
+        guard value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") else {
+            return value
+        }
+        return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
 
     func done() {
@@ -273,14 +299,14 @@ class DatasetEncoder {
     private var latestGyroscopeData: (timestamp: Double, data: simd_double3)?
 
 
-    init(arConfiguration: ARWorldTrackingConfiguration, fpsDivider: Int = 1) {
+    init(arConfiguration: ARWorldTrackingConfiguration, fpsDivider: Int = 1, isImportant: Bool = false) {
         self.frameInterval = fpsDivider
         self.queue = DispatchQueue(label: "encoderQueue")
         
         let width = arConfiguration.videoFormat.imageResolution.width
         let height = arConfiguration.videoFormat.imageResolution.height
-        var theId: UUID = UUID()
-        datasetDirectory = DatasetEncoder.createDirectory(id: &theId)
+        let theId = UUID()
+        datasetDirectory = DatasetEncoder.createDirectory(isImportant: isImportant)
         self.id = theId
         self.rgbFilePath = datasetDirectory.appendingPathComponent("rgb.mp4")
         self.rgbEncoder = VideoEncoder(file: self.rgbFilePath, width: width, height: height)
@@ -423,15 +449,19 @@ class DatasetEncoder {
         }
     }
 
-    static private func createDirectory(id: inout UUID) -> URL {
-        let directoryId = hashUUID(id: id)
+    static private func createDirectory(isImportant: Bool) -> URL {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        var directory = URL(fileURLWithPath: directoryId, relativeTo: url)
-        if FileManager.default.fileExists(atPath: directory.absoluteString) {
-            // Just in case the first 5 characters clash, try again.
-            id = UUID()
-            directory = DatasetEncoder.createDirectory(id: &id)
+        let day = datasetDayString()
+        var datasetNumber = nextDatasetNumber(in: url)
+        var directoryName = datasetFolderName(number: datasetNumber, day: day, isImportant: isImportant)
+        var directory = URL(fileURLWithPath: directoryName, relativeTo: url)
+
+        while FileManager.default.fileExists(atPath: directory.path) {
+            datasetNumber += 1
+            directoryName = datasetFolderName(number: datasetNumber, day: day, isImportant: isImportant)
+            directory = URL(fileURLWithPath: directoryName, relativeTo: url)
         }
+
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
         } catch let error as NSError {
@@ -440,15 +470,38 @@ class DatasetEncoder {
         return directory
     }
 
-    static private func hashUUID(id: UUID) -> String {
-        var hasher: SHA256 = SHA256()
-        hasher.update(data: id.uuidString.data(using: .ascii)!)
-        let digest = hasher.finalize()
-        var string = ""
-        digest.makeIterator().prefix(5).forEach { (byte: UInt8) in
-            string += String(format: "%02x", byte)
+    static private func datasetFolderName(number: Int, day: String, isImportant: Bool) -> String {
+        let suffix = isImportant ? "*" : ""
+        return String(format: "cay_%04d_%@%@", number, day, suffix)
+    }
+
+    static private func datasetDayString(date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "ddMM"
+        return formatter.string(from: date)
+    }
+
+    static private func nextDatasetNumber(in documentsDirectory: URL) -> Int {
+        let existingFolders = (try? FileManager.default.contentsOfDirectory(
+            at: documentsDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        let maxNumber = existingFolders
+            .map { datasetNumber(fromFolderName: $0.lastPathComponent) }
+            .compactMap { $0 }
+            .max() ?? 0
+
+        return maxNumber + 1
+    }
+
+    static private func datasetNumber(fromFolderName folderName: String) -> Int? {
+        let parts = folderName.split(separator: "_", omittingEmptySubsequences: false)
+        guard parts.count >= 3, parts[0] == "cay" else {
+            return nil
         }
-        print("Hash: \(string)")
-        return string
+        return Int(parts[1])
     }
 }
