@@ -75,7 +75,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
 
     override func viewDidLoad() {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
-        self.dataContext = appDelegate.persistentContainer.newBackgroundContext()
+        self.dataContext = appDelegate.persistentContainer.viewContext
         self.renderer = CameraRenderer(rgbLayer: rgbView.layer, depthLayer: depthView.layer)
 
         depthView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(viewTapped)))
@@ -245,6 +245,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         recording.setValue(datasetEncoder!.depthFilePath.relativeString, forKey: "depthFilePath")
         do {
             try self.dataContext.save()
+            NotificationCenter.default.post(name: NSNotification.Name("sessionsChanged"), object: nil)
         } catch let error as NSError {
             print("Could not save recording. \(error), \(error.userInfo)")
         }

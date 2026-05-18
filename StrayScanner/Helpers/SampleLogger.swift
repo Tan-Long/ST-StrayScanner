@@ -57,9 +57,13 @@ class SampleLogger {
         try? FileManager.default.createDirectory(at: samplesDir, withIntermediateDirectories: true)
     }
 
-    var samplesDirectory: URL { samplesDir }
+    var samplesDirectory: URL {
+        try? ensureSamplesDirectory()
+        return samplesDir
+    }
 
     func sampleImageFiles() -> [URL] {
+        try? ensureSamplesDirectory()
         let files = (try? FileManager.default.contentsOfDirectory(
             at: samplesDir,
             includingPropertiesForKeys: [.contentModificationDateKey],
@@ -79,6 +83,7 @@ class SampleLogger {
     }
 
     func deleteSamplePhoto(filename: String) throws {
+        try ensureSamplesDirectory()
         try ensureCurrentCSVHeader()
 
         let photoURL = samplesDir.appendingPathComponent(filename)
@@ -87,6 +92,12 @@ class SampleLogger {
         }
 
         try removeRows(forPhotoFilename: filename)
+        exportXLSX()
+    }
+
+    func prepareStorageForExport() {
+        try? ensureSamplesDirectory()
+        try? ensureCurrentCSVHeader()
         exportXLSX()
     }
 
@@ -164,6 +175,7 @@ class SampleLogger {
     // MARK: - Append
 
     func append(record: SampleRecord) throws {
+        try ensureSamplesDirectory()
         try ensureCurrentCSVHeader()
 
         let lat = record.latitude.map  { String($0) } ?? ""
@@ -197,6 +209,7 @@ class SampleLogger {
     // MARK: - XLSX (TSV fallback)
 
     func exportXLSX() {
+        try? ensureSamplesDirectory()
         try? ensureCurrentCSVHeader()
         guard var csvString = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
         if csvString.hasPrefix("\u{FEFF}") {
@@ -214,6 +227,7 @@ class SampleLogger {
     // MARK: - Private helpers
 
     private func ensureCurrentCSVHeader() throws {
+        try ensureSamplesDirectory()
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: csvURL.path) {
             var data = Self.utf8BOM
@@ -250,6 +264,10 @@ class SampleLogger {
         }
 
         try migrated.write(to: csvURL, options: .atomic)
+    }
+
+    private func ensureSamplesDirectory() throws {
+        try FileManager.default.createDirectory(at: samplesDir, withIntermediateDirectories: true)
     }
 
     private func migrateRow(_ row: String, sourceHeader: String) -> String {

@@ -53,6 +53,7 @@ class ShareUtility {
     private static func createFullDataArchiveSync() throws -> URL {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        SampleLogger.shared.prepareStorageForExport()
         let tempDirectory = fileManager.temporaryDirectory
         let timestamp = exportTimestamp()
         let packageName = "StrayScanner_export_\(timestamp)"
