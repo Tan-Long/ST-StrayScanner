@@ -1,0 +1,2 @@
+#include "../Pods/Target Support Files/Pods-StrayScanner/Pods-StrayScanner.debug.xcconfig"
+#include "Signing.jin.xcconfig"
