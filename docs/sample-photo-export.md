@@ -13,6 +13,7 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - Anh mau duoc luu kem metadata render truc tiep len anh.
 - Man hinh chup sample bo truong `Ten mau`; chi giu `Sample ID` de dinh danh anh/data.
 - `Loai mau` la nut chon rieng `Dia y` / `Khong dia y`, khong tu dong lien ket vao `Sample ID`.
+- `Site` duoc dong bo tu GPS/reverse-geocode; neu chua co dia chi reverse-geocode thi hien toa do GPS tam thoi.
 - `Huong lay mau` la nut chon rieng `Upslope` / `Downslope`.
 - `Huong camera nhin vao cay` va `Huong manh xam` duoc cap nhat theo heading realtime cua camera streaming; huong manh xam la huong nguoc lai voi huong camera, tuc huong be mat di ra moi truong.
 - Simulator co mock camera de xem UI va tao anh/data gia khi khong co iPhone.
