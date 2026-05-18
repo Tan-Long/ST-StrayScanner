@@ -1,0 +1,5 @@
+STRAYSCANNER_DEVELOPMENT_TEAM = C2R59JQ4JH
+STRAYSCANNER_BUNDLE_ID = com.longtan.StrayScanner
+STRAYSCANNER_DEBUG_BUNDLE_ID = com.longtan.strayscanner.debug
+STRAYSCANNER_TESTS_BUNDLE_ID = com.longtan.StrayScanner.tests
+STRAYSCANNER_UITESTS_BUNDLE_ID = com.longtan.StrayScanner.uitests

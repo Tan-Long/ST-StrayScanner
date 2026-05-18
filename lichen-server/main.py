@@ -36,7 +36,7 @@ def health():
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {"request": request})
 
 
 @app.post("/analyze", response_class=HTMLResponse)
@@ -207,7 +207,7 @@ async def analyze(request: Request, file: UploadFile = File(...)):
             "lichen_by_aspect_json": json.dumps(lichen_result.get("by_aspect") or {}),
         }
 
-        return templates.TemplateResponse("dashboard.html", context)
+        return templates.TemplateResponse(request, "dashboard.html", context)
 
 
 def _find_scan_root(tmpdir: str, required: list) -> str | None:
@@ -228,9 +228,9 @@ def _list_files(tmpdir: str) -> list:
 
 def _error_page(request: Request, message: str, missing_files=None, present_files=None):
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
-            "request": request,
             "error": message,
             "missing_files": missing_files or [],
             "present_files": present_files or [],
