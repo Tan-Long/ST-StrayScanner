@@ -254,10 +254,11 @@ class SamplePhotoViewController: UIViewController {
         refreshLoaiMauBtns()
 
         // Site
-        stack.addArrangedSubview(fieldLabel("Site"))
+        stack.addArrangedSubview(fieldLabel("Site (GPS)"))
         siteField.borderStyle = .roundedRect
-        siteField.clearButtonMode = .whileEditing
-        siteField.placeholder = "Tự điền từ địa chỉ GPS"
+        siteField.placeholder = "Đang lấy GPS..."
+        siteField.isUserInteractionEnabled = false
+        siteField.backgroundColor = UIColor.secondarySystemBackground
         stack.addArrangedSubview(siteField)
 
         // Hướng camera / mảnh xăm
@@ -403,12 +404,10 @@ class SamplePhotoViewController: UIViewController {
             parts.append(huongLayMau)
         }
 
-        if let place = LocationMetadataManager.shared.currentPlaceName {
+        let place = LocationMetadataManager.shared.currentPlaceName
+        syncSiteFromGPS(place: place, location: LocationMetadataManager.shared.currentLocation)
+        if let place = place {
             parts.append(place)
-            // Auto-fill Site once if still empty
-            if siteField.text?.isEmpty ?? true {
-                siteField.text = place
-            }
         }
 
         overlayLabel.text = " " + parts.joined(separator: " · ") + " "
@@ -434,6 +433,24 @@ class SamplePhotoViewController: UIViewController {
         if siteField.text?.isEmpty ?? true {
             siteField.text = "Mock Site - Hanoi"
         }
+    }
+
+    private func syncSiteFromGPS(place: String?, location: CLLocation?) {
+        siteField.text = siteTextFromGPS(place: place, location: location)
+    }
+
+    private func siteTextFromGPS(place: String?, location: CLLocation?) -> String {
+        if let place = place, !place.isEmpty {
+            return place
+        }
+        if let location = location {
+            return String(
+                format: "%.6f, %.6f",
+                location.coordinate.latitude,
+                location.coordinate.longitude
+            )
+        }
+        return ""
     }
 
     private func cardinal(for degrees: Double) -> String {
@@ -579,13 +596,14 @@ class SamplePhotoViewController: UIViewController {
         syncRealtimeHuongManhXam(heading: heading)
         let huongManhXam = self.huongManhXam(from: heading)?.cardinal ?? selectedHuongManhXamCardinal()
         let place = LocationMetadataManager.shared.currentPlaceName ?? ""
+        let site = siteTextFromGPS(place: place, location: location)
         return SampleCaptureSnapshot(
             location: location,
             heading: heading,
             place: place,
             capturedAt: Date(),
             sampleID: sampleIDField.text ?? "UNKNOWN",
-            site: siteField.text ?? "",
+            site: site,
             huongCamera: selectedCameraCardinal(from: heading),
             huongManhXam: huongManhXam,
             huongLayMau: selectedHuongLayMau ?? "",
