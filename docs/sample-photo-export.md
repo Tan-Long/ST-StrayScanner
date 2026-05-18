@@ -51,17 +51,17 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
   - Long
   - GPS_accuracy_m
   - Altitude_m
-  - Heading_degree
-  - Heading_cardinal
+  - Huong camera degree
+  - Huong camera cardinal
+  - Huong manh xam degree
+  - Huong manh xam cardinal
   - Location
   - Site
-  - Huong camera nhin vao cay
-  - Huong manh xam
   - Huong lay mau
 - Cac file `samples_log.csv` cu se duoc migrate sang thu tu cot moi khi app append/export sample data lan tiep theo.
 
 ## Ghi chu
 
 - App van luu anh thanh file trong thu muc `samples`, khong nhung binary anh vao database, de viec copy thu muc qua Mac don gian va nhe hon.
-- `Heading_degree` va `Heading_cardinal` la huong manh xam huong ra moi truong; cot `Huong camera nhin vao cay` luu huong camera dang chieu vao cay.
+- Khong dung cot chung chung `Heading_degree` / `Heading_cardinal` nua vi de nham voi `Huong manh xam`; file data moi ghi degree/cardinal rieng cho camera va manh xam.
 - Cac dong cu chua co heading hoac GPS accuracy se de trong cac cot do sau migration.

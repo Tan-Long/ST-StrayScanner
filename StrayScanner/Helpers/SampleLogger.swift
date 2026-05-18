@@ -13,12 +13,12 @@ struct SampleRecord {
     let gpsAccuracy: Double?
     let location: String       // reverse-geocoded place name
     let site: String           // user-entered site
+    let huongCameraDegrees: Double?
     let huongCamera: String    // camera direction into tree
+    let huongManhXamDegrees: Double?
     let huongManhXam: String   // N NE E SE S SW W NW
     let huongLayMau: String    // Upslope / Downslope
     let altitude: Double?
-    let headingDegrees: Double?
-    let headingCardinal: String?
     let loaiMau: String        // Địa y / Không địa y
     let ngayLay: String        // display date string
     let fileAnh: String        // JPEG filename only
@@ -38,8 +38,10 @@ class SampleLogger {
 
     private static let csvHeader =
         "File ảnh,Sample-ID,Flag,Loại mẫu,Ngày lấy," +
-        "Lat,Long,GPS_accuracy_m,Altitude_m,Heading_degree,Heading_cardinal," +
-        "Location,Site,Hướng camera nhìn vào cây,Hướng mảnh xăm,Hướng lấy mẫu\n"
+        "Lat,Long,GPS_accuracy_m,Altitude_m," +
+        "Hướng camera degree,Hướng camera cardinal," +
+        "Hướng mảnh xăm degree,Hướng mảnh xăm cardinal," +
+        "Location,Site,Hướng lấy mẫu\n"
     private static let currentColumnCount = 16
     private static let noFlagColumnCount = 15
     private static let previousColumnCount = 16
@@ -137,8 +139,8 @@ class SampleLogger {
         let lon = record.longitude.map { String($0) } ?? ""
         let gpsAccuracy = record.gpsAccuracy.map { String($0) } ?? ""
         let alt = record.altitude.map  { String($0) } ?? ""
-        let heading = record.headingDegrees.map { String($0) } ?? ""
-        let headingCardinal = record.headingCardinal ?? ""
+        let cameraHeading = record.huongCameraDegrees.map { String($0) } ?? ""
+        let huongManhXamHeading = record.huongManhXamDegrees.map { String($0) } ?? ""
         let flag = record.isImportant ? "*" : ""
 
         let row = [
@@ -146,10 +148,10 @@ class SampleLogger {
             flag,
             escape(record.loaiMau), escape(record.ngayLay),
             lat, lon, gpsAccuracy, alt,
-            heading, escape(headingCardinal),
+            cameraHeading, escape(record.huongCamera),
+            huongManhXamHeading, escape(record.huongManhXam),
             escape(record.location), escape(record.site),
-            escape(record.huongCamera),
-            escape(record.huongManhXam), escape(record.huongLayMau)
+            escape(record.huongLayMau)
         ].joined(separator: ",") + "\n"
 
         guard let data = row.data(using: .utf8) else { return }
@@ -225,26 +227,52 @@ class SampleLogger {
 
         switch fields.count {
         case Self.previousColumnCount:
-            if sourceHeader.contains("Tên mẫu") || sourceHeader.contains("Ten mau") {
-                migratedFields = [fields[0], fields[1], ""] + Array(fields[3...15])
+            if sourceHeader.contains("Hướng camera degree") || sourceHeader.contains("Huong camera degree") {
+                migratedFields = fields
+            } else if sourceHeader.contains("Tên mẫu") || sourceHeader.contains("Ten mau") {
+                migratedFields = [
+                    fields[0], fields[1], "", fields[3], fields[4],
+                    fields[5], fields[6], fields[7], fields[8],
+                    "", fields[13], fields[9], fields[14],
+                    fields[11], fields[12], fields[15]
+                ]
+            } else if sourceHeader.contains("Heading_degree") {
+                migratedFields = [
+                    fields[0], fields[1], fields[2], fields[3], fields[4],
+                    fields[5], fields[6], fields[7], fields[8],
+                    "", fields[13], fields[9], fields[14],
+                    fields[11], fields[12], fields[15]
+                ]
             } else {
                 migratedFields = fields
             }
         case Self.noFlagColumnCount where !(sourceHeader.contains("Tên mẫu") || sourceHeader.contains("Ten mau")):
-            migratedFields = [fields[0], fields[1], ""] + Array(fields[2...14])
+            migratedFields = [
+                fields[0], fields[1], "", fields[2], fields[3],
+                fields[4], fields[5], fields[6], fields[7],
+                "", fields[12], fields[8], fields[13],
+                fields[10], fields[11], fields[14]
+            ]
         case Self.noCameraWithTenMauColumnCount:
-            migratedFields = [fields[0], fields[1], ""] + Array(fields[3...12]) + [""] + Array(fields[13...14])
+            migratedFields = [
+                fields[0], fields[1], "", fields[3], fields[4],
+                fields[5], fields[6], fields[7], fields[8],
+                "", "", fields[9], fields[13],
+                fields[11], fields[12], fields[14]
+            ]
         case Self.headingLegacyColumnCount:
             migratedFields = [
                 fields[13], fields[0], "", fields[11], fields[12],
-                fields[2], fields[3], "", fields[8], fields[9], fields[10],
-                fields[4], fields[5], "", fields[6], fields[7]
+                fields[2], fields[3], "", fields[8],
+                "", "", fields[9], fields[10],
+                fields[4], fields[5], fields[7]
             ]
         case Self.legacyColumnCount:
             migratedFields = [
                 fields[11], fields[0], "", fields[9], fields[10],
-                fields[2], fields[3], "", fields[8], "", "",
-                fields[4], fields[5], "", fields[6], fields[7]
+                fields[2], fields[3], "", fields[8],
+                "", "", "", fields[6],
+                fields[4], fields[5], fields[7]
             ]
         default:
             var padded = fields
