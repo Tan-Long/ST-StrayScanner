@@ -12,6 +12,7 @@ import CoreData
 class SessionListViewModel: ObservableObject {
     private var dataContext: NSManagedObjectContext?
     @Published var sessions: [Recording] = []
+    @Published var resetError: String?
 
     init() {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
@@ -42,11 +43,55 @@ class SessionListViewModel: ObservableObject {
         fetchSessions()
     }
 
+    func resetAllData() {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "Recording")
+        let fileManager = FileManager.default
+
+        do {
+            let fetched: [NSManagedObject] = try dataContext?.fetch(request) ?? []
+            for object in fetched {
+                if let recording = object as? Recording {
+                    recording.deleteFiles()
+                }
+                dataContext?.delete(object)
+            }
+            try dataContext?.save()
+
+            let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let urls = try fileManager.contentsOfDirectory(
+                at: documentsURL,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )
+
+            for url in urls where shouldDeleteExportItem(url) {
+                try? fileManager.removeItem(at: url)
+            }
+
+            SampleContextStore.shared.clear()
+            UserDefaults.standard.removeObject(forKey: "sample_last_gps_site")
+            sessions = []
+            NotificationCenter.default.post(name: NSNotification.Name("sessionsChanged"), object: nil)
+        } catch let error as NSError {
+            resetError = "Không thể xoá toàn bộ data: \(error.localizedDescription)"
+        }
+    }
+
+    private func shouldDeleteExportItem(_ url: URL) -> Bool {
+        let fileManager = FileManager.default
+        let name = url.lastPathComponent
+        if name == "samples" || name.hasPrefix("cay_") || name.hasSuffix(".zip") {
+            return true
+        }
+        return fileManager.fileExists(atPath: url.appendingPathComponent("rgb.mp4").path)
+    }
+
 }
 
 struct SessionList: View {
     @ObservedObject var viewModel = SessionListViewModel()
     @State private var showingInfo = false
+    @State private var showingResetConfirm = false
 
     var body: some View {
         ZStack {
@@ -124,6 +169,23 @@ struct SessionList: View {
                     .accessibilityIdentifier("sessionList.samplePhoto")
                     Spacer()
                 }
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showingResetConfirm = true
+                    }, label: {
+                        Text("Format / Reset data")
+                            .font(.body)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 18)
+                            .background(Color("DangerColor"))
+                            .foregroundColor(.white)
+                            .cornerRadius(24)
+                            .padding(.bottom, 16)
+                    })
+                    .accessibilityIdentifier("sessionList.resetData")
+                    Spacer()
+                }
                 if (viewModel.sessions.isEmpty) {
                     Spacer()
                 }
@@ -143,6 +205,21 @@ struct SessionList: View {
         }
         }
         .background(Color("BackgroundColor").edgesIgnoringSafeArea(.all))
+        .alert("Xoá toàn bộ data?", isPresented: $showingResetConfirm) {
+            Button("Huỷ", role: .cancel) {}
+            Button("Xoá hết", role: .destructive) {
+                viewModel.resetAllData()
+            }
+        } message: {
+            Text("Thao tác này xoá toàn bộ video folders, ảnh sample, file data export và danh sách recording trong app. Không thể hoàn tác.")
+        }
+        .alert("Reset lỗi", isPresented: Binding(
+            get: { viewModel.resetError != nil },
+            set: { if !$0 { viewModel.resetError = nil } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.resetError = nil }
+        } message: {
+            Text(viewModel.resetError ?? "")
         }
     }
 }
