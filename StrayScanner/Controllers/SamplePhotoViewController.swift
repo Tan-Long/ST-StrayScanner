@@ -27,6 +27,7 @@ class SamplePhotoViewController: UIViewController {
     private let diaYBtn        = UIButton(type: .system)
     private let khongDiaYBtn   = UIButton(type: .system)
     private let siteField      = UITextField()
+    private let siteStatusLabel = UILabel()
     private let huongPicker    = UIPickerView()
     private let upslopeBtn     = UIButton(type: .system)
     private let downslopeBtn   = UIButton(type: .system)
@@ -39,6 +40,7 @@ class SamplePhotoViewController: UIViewController {
     private var selectedHuongLayMau: String?
     private var selectedLoaiMau: String = "Địa y"
     private var isImportantSample: Bool = false
+    private var isSiteManuallyEdited: Bool = false
     private var overlayTimer: Timer?
     private var simulatorPreviewBuilt = false
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -272,10 +274,15 @@ class SamplePhotoViewController: UIViewController {
         // Site
         stack.addArrangedSubview(fieldLabel("Site (GPS)"))
         siteField.borderStyle = .roundedRect
-        siteField.placeholder = "Đang lấy GPS..."
-        siteField.isUserInteractionEnabled = false
-        siteField.backgroundColor = UIColor.secondarySystemBackground
+        siteField.placeholder = "Tự lấy GPS hoặc nhập tay"
+        siteField.clearButtonMode = .whileEditing
+        siteField.addTarget(self, action: #selector(siteEdited), for: .editingChanged)
         stack.addArrangedSubview(siteField)
+        siteStatusLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        siteStatusLabel.textColor = .secondaryLabel
+        siteStatusLabel.numberOfLines = 0
+        siteStatusLabel.text = "Đang lấy GPS..."
+        stack.addArrangedSubview(siteStatusLabel)
 
         // Hướng camera / mảnh xăm
         stack.addArrangedSubview(fieldLabel("Hướng camera / Hướng mảnh xăm"))
@@ -456,7 +463,12 @@ class SamplePhotoViewController: UIViewController {
     }
 
     private func syncSiteFromGPS(place: String?, location: CLLocation?) {
+        guard !isSiteManuallyEdited || siteField.text?.isEmpty == true || siteField.text == noGPSFallbackSite else {
+            updateSiteStatus("Site nhập tay")
+            return
+        }
         siteField.text = siteTextFromGPS(place: place, location: location)
+        updateSiteStatus(siteStatusText(place: place, location: location))
     }
 
     private func siteTextFromGPS(place: String?, location: CLLocation?) -> String {
@@ -485,6 +497,23 @@ class SamplePhotoViewController: UIViewController {
             return nil
         }
         return site
+    }
+
+    private func siteStatusText(place: String?, location: CLLocation?) -> String {
+        if let place = place, !place.isEmpty {
+            return "Site từ GPS"
+        }
+        if location != nil {
+            return "Site từ tọa độ GPS"
+        }
+        if lastSavedSite() != nil {
+            return "Đang dùng site GPS gần nhất"
+        }
+        return "Không có GPS, vui lòng nhập Site"
+    }
+
+    private func updateSiteStatus(_ text: String) {
+        siteStatusLabel.text = text
     }
 
     private func cardinal(for degrees: Double) -> String {
@@ -587,6 +616,11 @@ class SamplePhotoViewController: UIViewController {
         refreshImportantButton()
     }
 
+    @objc private func siteEdited() {
+        isSiteManuallyEdited = !(siteField.text?.isEmpty ?? true)
+        updateSiteStatus(isSiteManuallyEdited ? "Site nhập tay" : "Đang lấy GPS...")
+    }
+
     @objc private func huongLayMauTapped(_ sender: UIButton) {
         selectedHuongLayMau = sender.title(for: .normal)
         refreshHuongBtns()
@@ -645,7 +679,8 @@ class SamplePhotoViewController: UIViewController {
         syncRealtimeHuongManhXam(heading: heading)
         let huongManhXam = self.huongManhXam(from: heading)?.cardinal ?? selectedHuongManhXamCardinal()
         let place = LocationMetadataManager.shared.currentPlaceName ?? ""
-        let site = siteTextFromGPS(place: place, location: location)
+        let manualSite = siteField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let site = manualSite.isEmpty ? siteTextFromGPS(place: place, location: location) : manualSite
         return SampleCaptureSnapshot(
             location: location,
             heading: heading,
