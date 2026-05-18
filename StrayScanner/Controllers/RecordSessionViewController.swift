@@ -38,6 +38,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
     private var startedRecording: Date?
     private var dataContext: NSManagedObjectContext!
     private var datasetEncoder: DatasetEncoder?
+    private var selectedSampleContext: SampleContext?
+    private var hasAppliedInitialSampleContext = false
     private let imuOperationQueue = OperationQueue()
     private var chosenFpsSetting: Int = 0
     private var isImportantTree: Bool = false
@@ -52,13 +54,23 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
     func setDismissFunction(_ fn: Optional<() -> Void>) {
         self.dismissFunction = fn
     }
+
+    func setSampleContext(_ context: SampleContext?) {
+        selectedSampleContext = context
+        guard startedRecording == nil else { return }
+        if !hasAppliedInitialSampleContext {
+            isImportantTree = context?.isImportant ?? false
+            hasAppliedInitialSampleContext = true
+        }
+        if isViewLoaded {
+            updateImportantButton()
+        }
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         self.chosenFpsSetting = UserDefaults.standard.integer(forKey: FpsUserDefaultsKey)
         updateFpsSetting()
-        if let sampleContext = SampleContextStore.shared.current {
-            isImportantTree = sampleContext.isImportant
-            updateImportantButton()
-        }
+        setSampleContext(selectedSampleContext)
     }
 
     override func viewDidLoad() {
@@ -175,11 +187,12 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         // fresh location fix rather than a stale or nil value.
         LocationMetadataManager.shared.start()
         importantButton.isEnabled = false
+        let sampleContext = sampleContextForRecording()
         datasetEncoder = DatasetEncoder(
             arConfiguration: arConfiguration!,
             fpsDivider: FpsDividers[chosenFpsSetting],
             isImportant: isImportantTree,
-            sampleContext: SampleContextStore.shared.current
+            sampleContext: sampleContext
         )
         startRawIMU()
     }
@@ -314,6 +327,18 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         importantButton.backgroundColor = isImportantTree ? UIColor.systemYellow : UIColor(named: "DarkColor")
         importantButton.setTitleColor(isImportantTree ? UIColor.black : UIColor(named: "LightColor"), for: .normal)
         importantButton.accessibilityValue = isImportantTree ? "Important" : "Normal"
+    }
+
+    private func sampleContextForRecording() -> SampleContext? {
+        guard let context = selectedSampleContext else { return nil }
+        let sampleID = context.sampleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sampleID.isEmpty else { return nil }
+        return SampleContext(
+            sampleID: sampleID,
+            isImportant: isImportantTree,
+            loaiMau: context.loaiMau,
+            site: context.site
+        )
     }
 
     private func setAccessibilityIdentifiers() {
