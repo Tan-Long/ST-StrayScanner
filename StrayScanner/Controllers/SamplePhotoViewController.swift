@@ -242,13 +242,6 @@ class SamplePhotoViewController: UIViewController {
             stack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
         ])
 
-        // Sample ID
-        stack.addArrangedSubview(fieldLabel("Sample ID"))
-        sampleIDField.borderStyle = .roundedRect
-        sampleIDField.clearButtonMode = .whileEditing
-        sampleIDField.autocorrectionType = .no
-        stack.addArrangedSubview(sampleIDField)
-
         // Flag
         stack.addArrangedSubview(fieldLabel("Flag"))
         importantButton.setTitle("☆", for: .normal)
@@ -302,6 +295,13 @@ class SamplePhotoViewController: UIViewController {
         styleHuongBtn(upslopeBtn,  "Upslope")
         styleHuongBtn(downslopeBtn,"Downslope")
         stack.addArrangedSubview(huongRow)
+
+        // Sample ID
+        stack.addArrangedSubview(fieldLabel("Sample ID"))
+        sampleIDField.borderStyle = .roundedRect
+        sampleIDField.clearButtonMode = .whileEditing
+        sampleIDField.autocorrectionType = .no
+        stack.addArrangedSubview(sampleIDField)
     }
 
     private func buildCaptureButton() {
