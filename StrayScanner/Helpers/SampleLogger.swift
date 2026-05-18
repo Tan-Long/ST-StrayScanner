@@ -67,9 +67,7 @@ class SampleLogger {
     /// so the initial ID is "M-1.1".
     func nextSampleID(prefix: String) -> String {
         try? ensureCurrentCSVHeader()
-        if !prefix.contains("-") {
-            return nextSampleID(prefix: "\(prefix)-1")
-        }
+        let prefix = normalizedPrefix(prefix)
         let matchPrefix = prefix + "."
         var maxSuffix = 0
         var found = false
@@ -83,6 +81,51 @@ class SampleLogger {
             }
         }
         return "\(prefix).\(found ? maxSuffix + 1 : 1)"
+    }
+
+    /// Returns the first Sample ID under prefix that still misses either
+    /// Upslope or Downslope; otherwise returns the next fresh ID.
+    func nextSampleIDForHuongPair(prefix: String) -> String {
+        try? ensureCurrentCSVHeader()
+        let prefix = normalizedPrefix(prefix)
+        let matchPrefix = prefix + "."
+        var maxSuffix = 0
+        var directionsBySuffix: [Int: Set<String>] = [:]
+
+        for row in existingDataRows() {
+            let fields = parseCSVRow(row)
+            let id = sampleIDField(of: fields)
+            guard id.hasPrefix(matchPrefix) else { continue }
+            let suffix = String(id.dropFirst(matchPrefix.count))
+            guard let n = Int(suffix) else { continue }
+            maxSuffix = max(maxSuffix, n)
+            let huong = huongLayMauField(of: fields)
+            if !huong.isEmpty {
+                directionsBySuffix[n, default: []].insert(huong)
+            }
+        }
+
+        for suffix in directionsBySuffix.keys.sorted() {
+            if !hasCompleteHuongPair(directionsBySuffix[suffix] ?? []) {
+                return "\(prefix).\(suffix)"
+            }
+        }
+
+        return "\(prefix).\(maxSuffix + 1)"
+    }
+
+    func hasCompleteHuongLayMauPair(sampleID: String) -> Bool {
+        try? ensureCurrentCSVHeader()
+        var directions = Set<String>()
+        for row in existingDataRows() {
+            let fields = parseCSVRow(row)
+            guard sampleIDField(of: fields) == sampleID else { continue }
+            let huong = huongLayMauField(of: fields)
+            if !huong.isEmpty {
+                directions.insert(huong)
+            }
+        }
+        return hasCompleteHuongPair(directions)
     }
 
     // MARK: - Append
@@ -223,11 +266,27 @@ class SampleLogger {
     }
 
     private func sampleIDField(of row: String) -> String {
-        let fields = parseCSVRow(row)
+        sampleIDField(of: parseCSVRow(row))
+    }
+
+    private func sampleIDField(of fields: [String]) -> String {
         if fields.count >= 2 {
             return fields[1]
         }
         return fields.first ?? ""
+    }
+
+    private func huongLayMauField(of fields: [String]) -> String {
+        guard fields.count >= Self.currentColumnCount else { return "" }
+        return fields[15]
+    }
+
+    private func normalizedPrefix(_ prefix: String) -> String {
+        prefix.contains("-") ? prefix : "\(prefix)-1"
+    }
+
+    private func hasCompleteHuongPair(_ directions: Set<String>) -> Bool {
+        directions.contains("Upslope") && directions.contains("Downslope")
     }
 
     private func escape(_ value: String) -> String {
