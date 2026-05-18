@@ -175,6 +175,25 @@ struct SessionList: View {
                 }
                 HStack {
                     Spacer()
+                    NavigationLink(destination: SamplePhotoListView(), label: {
+                        HStack {
+                            Image(systemName: "photo.on.rectangle")
+                            Text("Quản lý ảnh mẫu")
+                                .fixedSize()
+                        }
+                        .font(.body)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 18)
+                        .background(Color("TextColor"))
+                        .foregroundColor(Color("LightColor"))
+                        .cornerRadius(24)
+                        .padding(.bottom, 8)
+                    })
+                    .accessibilityIdentifier("sessionList.manageSamplePhotos")
+                    Spacer()
+                }
+                HStack {
+                    Spacer()
                     Button(action: exportAllData) {
                         HStack {
                             if isCreatingFullExport {
