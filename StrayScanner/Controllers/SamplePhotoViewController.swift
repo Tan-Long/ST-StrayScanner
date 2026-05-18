@@ -5,6 +5,7 @@
 
 import UIKit
 import AVFoundation
+import CoreLocation
 
 class SamplePhotoViewController: UIViewController {
 
@@ -37,6 +38,20 @@ class SamplePhotoViewController: UIViewController {
     private var overlayTimer: Timer?
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     var dismissFunction: (() -> Void)?
+
+    private typealias HeadingInfo = (degrees: Double, cardinal: String)
+    private struct SampleCaptureSnapshot {
+        let location: CLLocation?
+        let heading: HeadingInfo?
+        let place: String
+        let capturedAt: Date
+        let sampleID: String
+        let tenMau: String
+        let site: String
+        let huongManhXam: String
+        let huongLayMau: String
+        let loaiMau: String
+    }
 
     // MARK: - Lifecycle
 
@@ -295,8 +310,8 @@ class SamplePhotoViewController: UIViewController {
             parts.append(String(format: "%.0fm alt", loc.altitude))
         }
 
-        if let h = LocationMetadataManager.shared.currentHeading, h.headingAccuracy >= 0 {
-            parts.append(String(format: "%.0f° %@", h.magneticHeading, cardinal(for: h.magneticHeading)))
+        if let heading = headingInfo(from: LocationMetadataManager.shared.currentHeading) {
+            parts.append(String(format: "%.0f° %@", heading.degrees, heading.cardinal))
         }
 
         if let place = LocationMetadataManager.shared.currentPlaceName {
@@ -315,6 +330,12 @@ class SamplePhotoViewController: UIViewController {
         var d = degrees.truncatingRemainder(dividingBy: 360)
         if d < 0 { d += 360 }
         return dirs[Int((d + 22.5) / 45.0) % 8]
+    }
+
+    private func headingInfo(from heading: CLHeading?) -> HeadingInfo? {
+        guard let heading = heading, heading.headingAccuracy >= 0 else { return nil }
+        let degrees = heading.trueHeading >= 0 ? heading.trueHeading : heading.magneticHeading
+        return (degrees, cardinal(for: degrees))
     }
 
     // MARK: - Sample ID
@@ -374,38 +395,59 @@ class SamplePhotoViewController: UIViewController {
 
     // MARK: - Save record
 
-    private func saveRecord(imageData: Data) {
-        let loc     = LocationMetadataManager.shared.currentLocation
-        let heading = LocationMetadataManager.shared.currentHeading
-        let place   = LocationMetadataManager.shared.currentPlaceName ?? ""
+    private func currentCaptureSnapshot() -> SampleCaptureSnapshot {
+        let location = LocationMetadataManager.shared.currentLocation
+        let heading = headingInfo(from: LocationMetadataManager.shared.currentHeading)
+        let place = LocationMetadataManager.shared.currentPlaceName ?? ""
+        return SampleCaptureSnapshot(
+            location: location,
+            heading: heading,
+            place: place,
+            capturedAt: Date(),
+            sampleID: sampleIDField.text ?? "UNKNOWN",
+            tenMau: tenMauField.text ?? "",
+            site: siteField.text ?? "",
+            huongManhXam: huongManhXamOptions[huongPicker.selectedRow(inComponent: 0)],
+            huongLayMau: selectedHuongLayMau ?? "",
+            loaiMau: currentLoaiMau()
+        )
+    }
 
+    private func saveRecord(imageData: Data, snapshot: SampleCaptureSnapshot) {
         let tsFile = DateFormatter(); tsFile.dateFormat = "yyyyMMdd_HHmmss"
         let tsDisplay = DateFormatter(); tsDisplay.dateStyle = .medium; tsDisplay.timeStyle = .short
 
-        let sampleID = sampleIDField.text ?? "UNKNOWN"
-        let filename = "\(sampleID)_\(tsFile.string(from: Date())).jpg"
+        let filename = "\(snapshot.sampleID)_\(tsFile.string(from: snapshot.capturedAt)).jpg"
         let fileURL  = SampleLogger.shared.samplesDirectory.appendingPathComponent(filename)
+        let annotatedImageData = imageDataWithMetadataOverlay(
+            imageData: imageData,
+            filename: filename,
+            sampleID: snapshot.sampleID,
+            capturedAt: snapshot.capturedAt,
+            location: snapshot.location,
+            heading: snapshot.heading,
+            place: snapshot.place,
+            snapshot: snapshot
+        )
 
-        do { try imageData.write(to: fileURL) }
+        do { try annotatedImageData.write(to: fileURL) }
         catch { print("SamplePhoto: failed to write JPEG – \(error)") }
 
-        var headingStr = ""
-        if let h = heading, h.headingAccuracy >= 0 {
-            headingStr = String(format: "%.0f° %@", h.magneticHeading, cardinal(for: h.magneticHeading))
-        }
-
         let record = SampleRecord(
-            sampleID:      sampleID,
-            tenMau:        tenMauField.text ?? "",
-            latitude:      loc?.coordinate.latitude,
-            longitude:     loc?.coordinate.longitude,
-            location:      place,
-            site:          siteField.text ?? "",
-            huongManhXam:  huongManhXamOptions[huongPicker.selectedRow(inComponent: 0)],
-            huongLayMau:   selectedHuongLayMau ?? "",
-            altitude:      loc?.altitude,
-            loaiMau:       currentLoaiMau(),
-            ngayLay:       tsDisplay.string(from: Date()),
+            sampleID:      snapshot.sampleID,
+            tenMau:        snapshot.tenMau,
+            latitude:      snapshot.location?.coordinate.latitude,
+            longitude:     snapshot.location?.coordinate.longitude,
+            gpsAccuracy:   snapshot.location.map { max($0.horizontalAccuracy, 0) },
+            location:      snapshot.place,
+            site:          snapshot.site,
+            huongManhXam:  snapshot.huongManhXam,
+            huongLayMau:   snapshot.huongLayMau,
+            altitude:      snapshot.location?.altitude,
+            headingDegrees: snapshot.heading?.degrees,
+            headingCardinal: snapshot.heading?.cardinal,
+            loaiMau:       snapshot.loaiMau,
+            ngayLay:       tsDisplay.string(from: snapshot.capturedAt),
             fileAnh:       filename
         )
 
@@ -416,6 +458,106 @@ class SamplePhotoViewController: UIViewController {
             self?.showHUD()
             self?.advanceSampleID()
         }
+    }
+
+    private func imageDataWithMetadataOverlay(
+        imageData: Data,
+        filename: String,
+        sampleID: String,
+        capturedAt: Date,
+        location: CLLocation?,
+        heading: HeadingInfo?,
+        place: String,
+        snapshot: SampleCaptureSnapshot
+    ) -> Data {
+        guard let image = UIImage(data: imageData) else { return imageData }
+
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        var lines: [String] = [
+            "File: \(filename)",
+            "Sample ID: \(sampleID)",
+            "Ten mau: \(snapshot.tenMau)",
+            "Loai mau: \(snapshot.loaiMau)",
+            df.string(from: capturedAt)
+        ]
+
+        if !snapshot.site.isEmpty {
+            lines.append("Site: \(snapshot.site)")
+        }
+        lines.append("Huong manh xam: \(snapshot.huongManhXam)")
+        lines.append("Huong lay mau: \(snapshot.huongLayMau)")
+
+        if let loc = location {
+            lines.append(String(
+                format: "GPS: %.6f, %.6f ±%.0fm",
+                loc.coordinate.latitude,
+                loc.coordinate.longitude,
+                max(loc.horizontalAccuracy, 0)
+            ))
+            lines.append(String(format: "Altitude: %.1fm", loc.altitude))
+        }
+
+        if let heading = heading {
+            lines.append(String(format: "Heading: %.0f° %@", heading.degrees, heading.cardinal))
+        }
+
+        if !place.isEmpty {
+            lines.append(place)
+        }
+
+        let text = lines.joined(separator: "\n")
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        let annotatedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+
+            let width = image.size.width
+            let margin = max(16, width * 0.025)
+            let padding = max(10, width * 0.012)
+            let fontSize = min(max(width * 0.018, 18), 44)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineSpacing = max(3, fontSize * 0.12)
+
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .semibold),
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: paragraph
+            ]
+            let maxTextSize = CGSize(
+                width: image.size.width - (margin + padding) * 2,
+                height: .greatestFiniteMagnitude
+            )
+            let textRect = text.boundingRect(
+                with: maxTextSize,
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attributes,
+                context: nil
+            ).integral
+            let backgroundRect = CGRect(
+                x: margin,
+                y: margin,
+                width: textRect.width + padding * 2,
+                height: textRect.height + padding * 2
+            )
+            UIColor.black.withAlphaComponent(0.58).setFill()
+            UIBezierPath(
+                roundedRect: backgroundRect,
+                cornerRadius: max(6, fontSize * 0.2)
+            ).fill()
+
+            text.draw(
+                with: backgroundRect.insetBy(dx: padding, dy: padding),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attributes,
+                context: nil
+            )
+        }
+
+        return annotatedImage.jpegData(compressionQuality: 0.94) ?? imageData
     }
 
     private func showHUD() {
@@ -436,8 +578,12 @@ extension SamplePhotoViewController: AVCapturePhotoCaptureDelegate {
             print("SamplePhoto: capture error – \(String(describing: error))")
             return
         }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.saveRecord(imageData: data)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let snapshot = self.currentCaptureSnapshot()
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.saveRecord(imageData: data, snapshot: snapshot)
+            }
         }
     }
 }

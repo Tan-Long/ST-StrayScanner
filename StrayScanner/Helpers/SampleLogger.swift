@@ -10,11 +10,14 @@ struct SampleRecord {
     let tenMau: String
     let latitude: Double?
     let longitude: Double?
+    let gpsAccuracy: Double?
     let location: String       // reverse-geocoded place name
     let site: String           // user-entered site
     let huongManhXam: String   // N NE E SE S SW W NW
     let huongLayMau: String    // Upslope / Mid / Downslope
     let altitude: Double?
+    let headingDegrees: Double?
+    let headingCardinal: String?
     let loaiMau: String        // LU / TL / Khác
     let ngayLay: String        // display date string
     let fileAnh: String        // JPEG filename only
@@ -33,9 +36,12 @@ class SampleLogger {
     private let xlsxURL: URL
 
     private static let csvHeader =
-        "Sample-ID,Tên mẫu,Lat,Long,Location,Site," +
-        "Hướng mảnh xăm,Hướng lấy mẫu,Altitude_m," +
-        "Loại mẫu,Ngày lấy,File ảnh\n"
+        "File ảnh,Sample-ID,Tên mẫu,Loại mẫu,Ngày lấy," +
+        "Lat,Long,GPS_accuracy_m,Altitude_m,Heading_degree,Heading_cardinal," +
+        "Location,Site,Hướng mảnh xăm,Hướng lấy mẫu\n"
+    private static let currentColumnCount = 15
+    private static let legacyColumnCount = 12
+    private static let headingLegacyColumnCount = 14
 
     private init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -56,6 +62,7 @@ class SampleLogger {
     /// If prefix contains no "-" (bare type code like "LU"), prepends "-1" first
     /// so the initial ID is "LU-1.1".
     func nextSampleID(prefix: String) -> String {
+        try? ensureCurrentCSVHeader()
         if !prefix.contains("-") {
             return nextSampleID(prefix: "\(prefix)-1")
         }
@@ -63,7 +70,7 @@ class SampleLogger {
         var maxSuffix = 0
         var found = false
         for row in existingDataRows() {
-            let id = firstField(of: row)
+            let id = sampleIDField(of: row)
             guard id.hasPrefix(matchPrefix) else { continue }
             let suffix = String(id.dropFirst(matchPrefix.count))
             if let n = Int(suffix) {
@@ -77,23 +84,22 @@ class SampleLogger {
     // MARK: - Append
 
     func append(record: SampleRecord) throws {
-        if !FileManager.default.fileExists(atPath: csvURL.path) {
-            var data = Self.utf8BOM
-            data.append(contentsOf: Self.csvHeader.utf8)
-            try data.write(to: csvURL, options: .atomic)
-        }
+        try ensureCurrentCSVHeader()
 
         let lat = record.latitude.map  { String($0) } ?? ""
         let lon = record.longitude.map { String($0) } ?? ""
+        let gpsAccuracy = record.gpsAccuracy.map { String($0) } ?? ""
         let alt = record.altitude.map  { String($0) } ?? ""
+        let heading = record.headingDegrees.map { String($0) } ?? ""
+        let headingCardinal = record.headingCardinal ?? ""
 
         let row = [
-            escape(record.sampleID), escape(record.tenMau),
-            lat, lon,
+            escape(record.fileAnh), escape(record.sampleID), escape(record.tenMau),
+            escape(record.loaiMau), escape(record.ngayLay),
+            lat, lon, gpsAccuracy, alt,
+            heading, escape(headingCardinal),
             escape(record.location), escape(record.site),
-            escape(record.huongManhXam), escape(record.huongLayMau),
-            alt,
-            escape(record.loaiMau), escape(record.ngayLay), escape(record.fileAnh)
+            escape(record.huongManhXam), escape(record.huongLayMau)
         ].joined(separator: ",") + "\n"
 
         guard let data = row.data(using: .utf8) else { return }
@@ -108,6 +114,7 @@ class SampleLogger {
     // MARK: - XLSX (TSV fallback)
 
     func exportXLSX() {
+        try? ensureCurrentCSVHeader()
         guard var csvString = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
         if csvString.hasPrefix("\u{FEFF}") {
             csvString.removeFirst()
@@ -123,14 +130,88 @@ class SampleLogger {
 
     // MARK: - Private helpers
 
+    private func ensureCurrentCSVHeader() throws {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: csvURL.path) {
+            var data = Self.utf8BOM
+            data.append(contentsOf: Self.csvHeader.utf8)
+            try data.write(to: csvURL, options: .atomic)
+            return
+        }
+
+        guard var content = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
+        if content.hasPrefix("\u{FEFF}") {
+            content.removeFirst()
+        }
+
+        let header = Self.csvHeader.trimmingCharacters(in: .newlines)
+        var lines = content.components(separatedBy: "\n")
+        guard lines.first != header else { return }
+
+        if !lines.isEmpty {
+            lines.removeFirst()
+        }
+
+        var migrated = Self.utf8BOM
+        migrated.append(contentsOf: Self.csvHeader.utf8)
+
+        let migratedRows = lines
+            .filter { !$0.isEmpty }
+            .map { migrateRow($0) }
+            .joined(separator: "\n")
+
+        if !migratedRows.isEmpty {
+            migrated.append(contentsOf: migratedRows.utf8)
+            migrated.append(0x0A)
+        }
+
+        try migrated.write(to: csvURL, options: .atomic)
+    }
+
+    private func migrateRow(_ row: String) -> String {
+        let fields = parseCSVRow(row)
+        let migratedFields: [String]
+
+        switch fields.count {
+        case Self.currentColumnCount:
+            migratedFields = fields
+        case Self.headingLegacyColumnCount:
+            migratedFields = [
+                fields[13], fields[0], fields[1], fields[11], fields[12],
+                fields[2], fields[3], "", fields[8], fields[9], fields[10],
+                fields[4], fields[5], fields[6], fields[7]
+            ]
+        case Self.legacyColumnCount:
+            migratedFields = [
+                fields[11], fields[0], fields[1], fields[9], fields[10],
+                fields[2], fields[3], "", fields[8], "", "",
+                fields[4], fields[5], fields[6], fields[7]
+            ]
+        default:
+            var padded = fields
+            while padded.count < Self.currentColumnCount {
+                padded.append("")
+            }
+            migratedFields = Array(padded.prefix(Self.currentColumnCount))
+        }
+
+        return migratedFields
+            .map(escape)
+            .joined(separator: ",")
+    }
+
     private func existingDataRows() -> [String] {
         guard let content = try? String(contentsOf: csvURL, encoding: .utf8) else { return [] }
         let lines = content.components(separatedBy: "\n")
         return lines.dropFirst().filter { !$0.isEmpty }
     }
 
-    private func firstField(of row: String) -> String {
-        parseCSVRow(row).first ?? ""
+    private func sampleIDField(of row: String) -> String {
+        let fields = parseCSVRow(row)
+        if fields.count >= 2 {
+            return fields[1]
+        }
+        return fields.first ?? ""
     }
 
     private func escape(_ value: String) -> String {
