@@ -42,6 +42,8 @@ class SamplePhotoViewController: UIViewController {
     private var overlayTimer: Timer?
     private var simulatorPreviewBuilt = false
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    private let lastSiteDefaultsKey = "sample_last_gps_site"
+    private let noGPSFallbackSite = "Không có GPS"
     var dismissFunction: (() -> Void)?
 
     private typealias HeadingInfo = (degrees: Double, cardinal: String)
@@ -459,16 +461,30 @@ class SamplePhotoViewController: UIViewController {
 
     private func siteTextFromGPS(place: String?, location: CLLocation?) -> String {
         if let place = place, !place.isEmpty {
+            saveLastSite(place)
             return place
         }
         if let location = location {
-            return String(
+            let coordinates = String(
                 format: "%.6f, %.6f",
                 location.coordinate.latitude,
                 location.coordinate.longitude
             )
+            saveLastSite(coordinates)
+            return coordinates
         }
-        return ""
+        return lastSavedSite() ?? noGPSFallbackSite
+    }
+
+    private func saveLastSite(_ site: String) {
+        UserDefaults.standard.set(site, forKey: lastSiteDefaultsKey)
+    }
+
+    private func lastSavedSite() -> String? {
+        guard let site = UserDefaults.standard.string(forKey: lastSiteDefaultsKey), !site.isEmpty else {
+            return nil
+        }
+        return site
     }
 
     private func cardinal(for degrees: Double) -> String {
