@@ -40,7 +40,9 @@ class SessionListViewModel: ObservableObject {
     }
 
     @objc func sessionsChanged() {
-        fetchSessions()
+        DispatchQueue.main.async {
+            self.fetchSessions()
+        }
     }
 
     func resetAllData() {
@@ -70,6 +72,7 @@ class SessionListViewModel: ObservableObject {
 
             SampleContextStore.shared.clear()
             UserDefaults.standard.removeObject(forKey: "sample_last_gps_site")
+            SampleLogger.shared.prepareStorageForExport()
             sessions = []
             NotificationCenter.default.post(name: NSNotification.Name("sessionsChanged"), object: nil)
         } catch let error as NSError {
@@ -129,7 +132,7 @@ struct SessionList: View {
 
                 if !viewModel.sessions.isEmpty {
                     List {
-                        ForEach(Array(viewModel.sessions.enumerated()), id: \.element) { i, recording in
+                        ForEach(viewModel.sessions, id: \.objectID) { recording in
                             NavigationLink(destination: SessionDetailView(recording: recording)) {
                                 SessionRow(session: recording)
                             }
