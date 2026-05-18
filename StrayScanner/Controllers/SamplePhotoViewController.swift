@@ -539,7 +539,7 @@ class SamplePhotoViewController: UIViewController {
 
     private func refreshSampleID() {
         let prefix = sampleIDPrefix()
-        sampleIDField.text = SampleLogger.shared.nextSampleID(prefix: prefix)
+        sampleIDField.text = SampleLogger.shared.nextSampleIDForHuongPair(prefix: prefix)
     }
 
     private func sampleIDPrefix() -> String {
@@ -552,9 +552,10 @@ class SamplePhotoViewController: UIViewController {
 
     private func advanceSampleID() {
         guard let id = sampleIDField.text, !id.isEmpty else { return }
+        guard SampleLogger.shared.hasCompleteHuongLayMauPair(sampleID: id) else { return }
         if let dot = id.range(of: ".", options: .backwards) {
             let prefix = String(id[..<dot.lowerBound])
-            sampleIDField.text = SampleLogger.shared.nextSampleID(prefix: prefix)
+            sampleIDField.text = SampleLogger.shared.nextSampleIDForHuongPair(prefix: prefix)
         }
     }
 
@@ -649,8 +650,7 @@ class SamplePhotoViewController: UIViewController {
         let tsFile = DateFormatter(); tsFile.dateFormat = "yyyyMMdd_HHmmss"
         let tsDisplay = DateFormatter(); tsDisplay.dateStyle = .medium; tsDisplay.timeStyle = .short
 
-        let flagSuffix = snapshot.isImportant ? "*" : ""
-        let filename = "\(snapshot.sampleID)\(flagSuffix)_\(tsFile.string(from: snapshot.capturedAt)).jpg"
+        let filename = samplePhotoFilename(snapshot: snapshot, timestamp: tsFile.string(from: snapshot.capturedAt))
         let fileURL  = SampleLogger.shared.samplesDirectory.appendingPathComponent(filename)
         let annotatedImageData = imageDataWithMetadataOverlay(
             imageData: imageData,
@@ -700,6 +700,13 @@ class SamplePhotoViewController: UIViewController {
             self?.showHUD()
             self?.advanceSampleID()
         }
+    }
+
+    private func samplePhotoFilename(snapshot: SampleCaptureSnapshot, timestamp: String) -> String {
+        let sampleID = SampleContextStore.folderSafeSampleID(snapshot.sampleID)
+        let flagSuffix = snapshot.isImportant ? "*" : ""
+        let huong = SampleContextStore.folderSafeSampleID(snapshot.huongLayMau)
+        return "\(sampleID)\(flagSuffix)_\(huong)_\(timestamp).jpg"
     }
 
     private func simulatorMockImageData(snapshot: SampleCaptureSnapshot) -> Data {

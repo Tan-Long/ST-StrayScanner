@@ -13,6 +13,8 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - Anh mau duoc luu kem metadata render truc tiep len anh.
 - Man hinh chup sample bo truong `Ten mau`; chi giu `Sample ID` de dinh danh anh/data.
 - Man hinh chup sample co nut flag `*`; flag nay duoc ghi len anh, file data va duoc dung tiep cho thu muc video.
+- Mot `Sample ID` se giu nguyen cho toi khi co du 2 anh `Upslope` va `Downslope`; sau do app moi tang sang Sample ID tiep theo.
+- Ten file anh gom Sample ID, flag neu co, huong lay mau va timestamp, vi du `M-1.1*_Upslope_20260518_094500.jpg` va `M-1.1*_Downslope_20260518_094700.jpg`.
 - `Loai mau` la nut chon rieng `Dia y` / `Khong dia y`, khong tu dong lien ket vao `Sample ID`.
 - `Site` duoc dong bo tu GPS/reverse-geocode; neu chua co dia chi reverse-geocode thi hien toa do GPS tam thoi.
 - `Huong lay mau` la nut chon rieng `Upslope` / `Downslope`.
