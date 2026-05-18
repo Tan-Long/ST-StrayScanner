@@ -92,6 +92,10 @@ struct SessionList: View {
     @ObservedObject var viewModel = SessionListViewModel()
     @State private var showingInfo = false
     @State private var showingResetConfirm = false
+    @State private var showingShareSheet = false
+    @State private var fullExportURL: URL?
+    @State private var isCreatingFullExport = false
+    @State private var exportError: String?
 
     var body: some View {
         ZStack {
@@ -171,6 +175,31 @@ struct SessionList: View {
                 }
                 HStack {
                     Spacer()
+                    Button(action: exportAllData) {
+                        HStack {
+                            if isCreatingFullExport {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "archivebox")
+                            }
+                            Text(isCreatingFullExport ? "Đang nén..." : "Xuất ZIP toàn bộ")
+                                .fixedSize()
+                        }
+                        .font(.body)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 18)
+                        .background(isCreatingFullExport ? Color.gray : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(24)
+                        .padding(.bottom, 8)
+                    }
+                    .disabled(isCreatingFullExport)
+                    .accessibilityIdentifier("sessionList.exportAllZip")
+                    Spacer()
+                }
+                HStack {
+                    Spacer()
                     Button(action: {
                         showingResetConfirm = true
                     }, label: {
@@ -220,6 +249,44 @@ struct SessionList: View {
             Button("OK", role: .cancel) { viewModel.resetError = nil }
         } message: {
             Text(viewModel.resetError ?? "")
+        }
+        .alert("Xuất ZIP lỗi", isPresented: Binding(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK", role: .cancel) { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let fullExportURL = fullExportURL {
+                ShareSheet(activityItems: [fullExportURL]) { _, _, _, _ in
+                    DispatchQueue.main.async {
+                        try? FileManager.default.removeItem(at: fullExportURL)
+                        self.fullExportURL = nil
+                        showingShareSheet = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func exportAllData() {
+        isCreatingFullExport = true
+        Task {
+            do {
+                let url = try await ShareUtility.createFullDataArchive()
+                await MainActor.run {
+                    fullExportURL = url
+                    isCreatingFullExport = false
+                    showingShareSheet = true
+                }
+            } catch {
+                await MainActor.run {
+                    isCreatingFullExport = false
+                    exportError = error.localizedDescription
+                }
+            }
         }
     }
 }
