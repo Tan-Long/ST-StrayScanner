@@ -18,6 +18,8 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - `Loai mau` la nut chon rieng `Dia y` / `Khong dia y`, khong tu dong lien ket vao `Sample ID`.
 - `Site` duoc dong bo tu GPS/reverse-geocode; neu chua co dia chi reverse-geocode thi hien toa do GPS tam thoi.
 - Neu GPS khong cap nhat duoc, `Site` tu dien site GPS gan nhat da luu; neu may chua tung co GPS thi ghi `Khong co GPS` de file data khong bi trong.
+- O `Site` van cho nhap tay; khi nguoi dung sua/noi dung khac rong, app giu gia tri nhap tay va khong ghi de bang GPS nua.
+- Ben duoi o `Site` co trang thai bao ro dang dung GPS, toa do GPS, site GPS gan nhat, khong co GPS, hoac site nhap tay.
 - `Huong lay mau` la nut chon rieng `Upslope` / `Downslope`.
 - `Huong camera nhin vao cay` va `Huong manh xam` duoc cap nhat theo heading realtime cua camera streaming; huong manh xam la huong nguoc lai voi huong camera, tuc huong be mat di ra moi truong.
 - Simulator co mock camera de xem UI va tao anh/data gia khi khong co iPhone.
