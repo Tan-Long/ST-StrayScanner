@@ -726,12 +726,12 @@ class SamplePhotoViewController: UIViewController {
             gpsAccuracy:   snapshot.location.map { max($0.horizontalAccuracy, 0) },
             location:      snapshot.place,
             site:          snapshot.site,
+            huongCameraDegrees: snapshot.heading?.degrees,
             huongCamera:   snapshot.huongCamera,
+            huongManhXamDegrees: outwardHeading?.degrees,
             huongManhXam:  snapshot.huongManhXam,
             huongLayMau:   snapshot.huongLayMau,
             altitude:      snapshot.location?.altitude,
-            headingDegrees: outwardHeading?.degrees,
-            headingCardinal: outwardHeading?.cardinal,
             loaiMau:       snapshot.loaiMau,
             ngayLay:       tsDisplay.string(from: snapshot.capturedAt),
             fileAnh:       filename
@@ -952,6 +952,10 @@ class SamplePhotoViewController: UIViewController {
             sampleData["camera_heading_cardinal"] = heading.cardinal
             sampleData["heading_degree"] = outward.degrees
             sampleData["heading_cardinal"] = outward.cardinal
+            sampleData["huong_camera_degree"] = heading.degrees
+            sampleData["huong_camera_cardinal"] = heading.cardinal
+            sampleData["huong_manh_xam_degree"] = outward.degrees
+            sampleData["huong_manh_xam_cardinal"] = outward.cardinal
         }
 
         let jsonData = try? JSONSerialization.data(withJSONObject: sampleData, options: [.sortedKeys])
