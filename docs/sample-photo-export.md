@@ -41,6 +41,7 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
   - Heading degree va huong cardinal
   - Dia diem reverse-geocode
 - File data bay gio bat dau bang cot `File anh`, nen co the map dong data voi anh ma khong can soi lai noi dung tren anh.
+- Man hinh chinh co nut `Quan ly anh mau` de xem tung anh da chup va xoa tung anh; khi xoa, app xoa ca file `.jpg` va dong data tuong ung trong `samples_log.csv` / `samples_log.xlsx`.
 - File data ghi cac cot:
   - File anh
   - Sample-ID

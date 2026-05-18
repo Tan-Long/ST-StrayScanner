@@ -59,6 +59,37 @@ class SampleLogger {
 
     var samplesDirectory: URL { samplesDir }
 
+    func sampleImageFiles() -> [URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: samplesDir,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        return files
+            .filter { url in
+                let ext = url.pathExtension.lowercased()
+                return ext == "jpg" || ext == "jpeg"
+            }
+            .sorted { lhs, rhs in
+                let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                return lhsDate > rhsDate
+            }
+    }
+
+    func deleteSamplePhoto(filename: String) throws {
+        try ensureCurrentCSVHeader()
+
+        let photoURL = samplesDir.appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: photoURL.path) {
+            try FileManager.default.removeItem(at: photoURL)
+        }
+
+        try removeRows(forPhotoFilename: filename)
+        exportXLSX()
+    }
+
     // MARK: - Next ID
 
     /// Returns the next Sample ID for the given prefix.
@@ -291,6 +322,29 @@ class SampleLogger {
         guard let content = try? String(contentsOf: csvURL, encoding: .utf8) else { return [] }
         let lines = content.components(separatedBy: "\n")
         return lines.dropFirst().filter { !$0.isEmpty }
+    }
+
+    private func removeRows(forPhotoFilename filename: String) throws {
+        guard var content = try? String(contentsOf: csvURL, encoding: .utf8) else { return }
+        if content.hasPrefix("\u{FEFF}") {
+            content.removeFirst()
+        }
+
+        let lines = content.components(separatedBy: "\n")
+        let rowsToKeep = lines
+            .dropFirst()
+            .filter { !$0.isEmpty }
+            .filter { row in
+                parseCSVRow(row).first != filename
+            }
+
+        var data = Self.utf8BOM
+        data.append(contentsOf: Self.csvHeader.utf8)
+        if !rowsToKeep.isEmpty {
+            data.append(contentsOf: rowsToKeep.joined(separator: "\n").utf8)
+            data.append(0x0A)
+        }
+        try data.write(to: csvURL, options: .atomic)
     }
 
     private func sampleIDField(of row: String) -> String {
