@@ -8,6 +8,7 @@
 
 import SwiftUI
 import CoreData
+import AVFoundation
 
 class SessionListViewModel: ObservableObject {
     private var dataContext: NSManagedObjectContext?
@@ -29,6 +30,7 @@ class SessionListViewModel: ObservableObject {
         let request = NSFetchRequest<NSManagedObject>(entityName: "Recording")
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
         do {
+            try restoreMissingRecordingsFromFiles()
             let fetched: [NSManagedObject] = try dataContext?.fetch(request) ?? []
             sessions = fetched.map { session in
                 return session as! Recording
@@ -37,6 +39,56 @@ class SessionListViewModel: ObservableObject {
         } catch let error as NSError {
             print("Something went wrong. Error: \(error), \(error.userInfo)")
         }
+    }
+
+    private func restoreMissingRecordingsFromFiles() throws {
+        guard let dataContext = dataContext else { return }
+        let fileManager = FileManager.default
+        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let request = NSFetchRequest<NSManagedObject>(entityName: "Recording")
+        let existingRecordings = (try dataContext.fetch(request) as? [Recording]) ?? []
+        let existingDirectories = Set(existingRecordings.compactMap { recording in
+            recording.directoryPath()?.standardizedFileURL.path
+        })
+        let folders = try fileManager.contentsOfDirectory(
+            at: documentsURL,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey, .isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        var didRestore = false
+        for folder in folders {
+            let values = try? folder.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey, .isDirectoryKey])
+            guard values?.isDirectory == true else { continue }
+            guard folder.lastPathComponent != "samples" else { continue }
+            let rgbURL = folder.appendingPathComponent("rgb.mp4")
+            guard fileManager.fileExists(atPath: rgbURL.path) else { continue }
+            guard !existingDirectories.contains(folder.standardizedFileURL.path) else { continue }
+
+            let entity = NSEntityDescription.entity(forEntityName: "Recording", in: dataContext)!
+            let recording = Recording(entity: entity, insertInto: dataContext)
+            recording.id = UUID()
+            recording.name = folder.lastPathComponent
+            recording.createdAt = values?.creationDate ?? values?.contentModificationDate ?? Date()
+            recording.duration = videoDuration(url: rgbURL)
+            recording.rgbFilePath = "\(folder.lastPathComponent)/rgb.mp4"
+
+            let depthURL = folder.appendingPathComponent("depth", isDirectory: true)
+            if fileManager.fileExists(atPath: depthURL.path) {
+                recording.depthFilePath = "\(folder.lastPathComponent)/depth"
+            }
+            didRestore = true
+        }
+
+        if didRestore {
+            try dataContext.save()
+        }
+    }
+
+    private func videoDuration(url: URL) -> Double {
+        let duration = AVURLAsset(url: url).duration
+        let seconds = CMTimeGetSeconds(duration)
+        return seconds.isFinite ? seconds : 0
     }
 
     @objc func sessionsChanged() {
@@ -195,48 +247,6 @@ struct SessionList: View {
                     .accessibilityIdentifier("sessionList.manageSamplePhotos")
                     Spacer()
                 }
-                HStack {
-                    Spacer()
-                    Button(action: exportAllData) {
-                        HStack {
-                            if isCreatingFullExport {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "archivebox")
-                            }
-                            Text(isCreatingFullExport ? "Đang nén..." : "Xuất ZIP toàn bộ")
-                                .fixedSize()
-                        }
-                        .font(.body)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 18)
-                        .background(isCreatingFullExport ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(24)
-                        .padding(.bottom, 8)
-                    }
-                    .disabled(isCreatingFullExport)
-                    .accessibilityIdentifier("sessionList.exportAllZip")
-                    Spacer()
-                }
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        showingResetConfirm = true
-                    }, label: {
-                        Text("Format / Reset data")
-                            .font(.body)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 18)
-                            .background(Color("DangerColor"))
-                            .foregroundColor(.white)
-                            .cornerRadius(24)
-                            .padding(.bottom, 16)
-                    })
-                    .accessibilityIdentifier("sessionList.resetData")
-                    Spacer()
-                }
                 if (viewModel.sessions.isEmpty) {
                     Spacer()
                 }
@@ -291,6 +301,7 @@ struct SessionList: View {
                 }
             }
         }
+    }
     }
 
     private func exportAllData() {
