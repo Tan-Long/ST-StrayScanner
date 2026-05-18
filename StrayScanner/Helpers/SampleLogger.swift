@@ -7,18 +7,18 @@ import Foundation
 
 struct SampleRecord {
     let sampleID: String
-    let tenMau: String
     let latitude: Double?
     let longitude: Double?
     let gpsAccuracy: Double?
     let location: String       // reverse-geocoded place name
     let site: String           // user-entered site
+    let huongCamera: String    // camera direction into tree
     let huongManhXam: String   // N NE E SE S SW W NW
-    let huongLayMau: String    // Upslope / Mid / Downslope
+    let huongLayMau: String    // Upslope / Downslope
     let altitude: Double?
     let headingDegrees: Double?
     let headingCardinal: String?
-    let loaiMau: String        // LU / TL / Khác
+    let loaiMau: String        // Địa y / Không địa y
     let ngayLay: String        // display date string
     let fileAnh: String        // JPEG filename only
 }
@@ -36,10 +36,12 @@ class SampleLogger {
     private let xlsxURL: URL
 
     private static let csvHeader =
-        "File ảnh,Sample-ID,Tên mẫu,Loại mẫu,Ngày lấy," +
+        "File ảnh,Sample-ID,Loại mẫu,Ngày lấy," +
         "Lat,Long,GPS_accuracy_m,Altitude_m,Heading_degree,Heading_cardinal," +
-        "Location,Site,Hướng mảnh xăm,Hướng lấy mẫu\n"
+        "Location,Site,Hướng camera nhìn vào cây,Hướng mảnh xăm,Hướng lấy mẫu\n"
     private static let currentColumnCount = 15
+    private static let previousColumnCount = 16
+    private static let noCameraWithTenMauColumnCount = 15
     private static let legacyColumnCount = 12
     private static let headingLegacyColumnCount = 14
 
@@ -57,10 +59,10 @@ class SampleLogger {
 
     /// Returns the next Sample ID for the given prefix.
     /// Scans existing CSV for rows whose ID begins with "\(prefix)." and increments
-    /// the numeric suffix. e.g. prefix "LU-1", existing "LU-1.3" → "LU-1.4".
+    /// the numeric suffix. e.g. prefix "M-1", existing "M-1.3" → "M-1.4".
     /// If no records for prefix exist yet, returns "\(prefix).1".
-    /// If prefix contains no "-" (bare type code like "LU"), prepends "-1" first
-    /// so the initial ID is "LU-1.1".
+    /// If prefix contains no "-" (bare code like "M"), prepends "-1" first
+    /// so the initial ID is "M-1.1".
     func nextSampleID(prefix: String) -> String {
         try? ensureCurrentCSVHeader()
         if !prefix.contains("-") {
@@ -94,11 +96,12 @@ class SampleLogger {
         let headingCardinal = record.headingCardinal ?? ""
 
         let row = [
-            escape(record.fileAnh), escape(record.sampleID), escape(record.tenMau),
+            escape(record.fileAnh), escape(record.sampleID),
             escape(record.loaiMau), escape(record.ngayLay),
             lat, lon, gpsAccuracy, alt,
             heading, escape(headingCardinal),
             escape(record.location), escape(record.site),
+            escape(record.huongCamera),
             escape(record.huongManhXam), escape(record.huongLayMau)
         ].joined(separator: ",") + "\n"
 
@@ -173,19 +176,21 @@ class SampleLogger {
         let migratedFields: [String]
 
         switch fields.count {
-        case Self.currentColumnCount:
-            migratedFields = fields
+        case Self.previousColumnCount:
+            migratedFields = [fields[0], fields[1]] + Array(fields[3...15])
+        case Self.noCameraWithTenMauColumnCount:
+            migratedFields = [fields[0], fields[1]] + Array(fields[3...12]) + [""] + Array(fields[13...14])
         case Self.headingLegacyColumnCount:
             migratedFields = [
-                fields[13], fields[0], fields[1], fields[11], fields[12],
+                fields[13], fields[0], fields[11], fields[12],
                 fields[2], fields[3], "", fields[8], fields[9], fields[10],
-                fields[4], fields[5], fields[6], fields[7]
+                fields[4], fields[5], "", fields[6], fields[7]
             ]
         case Self.legacyColumnCount:
             migratedFields = [
-                fields[11], fields[0], fields[1], fields[9], fields[10],
+                fields[11], fields[0], fields[9], fields[10],
                 fields[2], fields[3], "", fields[8], "", "",
-                fields[4], fields[5], fields[6], fields[7]
+                fields[4], fields[5], "", fields[6], fields[7]
             ]
         default:
             var padded = fields
