@@ -3,7 +3,7 @@
 
 This document describes the data format recorded by the app.
 
-The collected datasets are each contained in a folder, named after a random hash, for example `71de12f9`. A dataset folder has the following directory structure:
+The collected datasets are each contained in a folder. TestLab builds use a tree/sample naming pattern, for example `cay_0001_1805_M-1.1*`, where `M-1.1` is the latest captured Sample ID and `*` marks a flagged sample/tree. A dataset folder has the following directory structure:
 
 ```
 camera_matrix.csv
@@ -21,6 +21,7 @@ distortion/          (optional, present when lens distortion data is available)
   - 000000.bin
   - 000001.bin
   - ...
+sample_metadata.json
 rgb.mp4
 ```
 
@@ -54,6 +55,8 @@ The `odometry.csv` file contains the camera pose and intrinsics for each frame. 
 
 The `distortion/` directory contains per-frame lens distortion lookup tables, present only when the device exposes calibration data. Each `.bin` file is a raw array of little-endian `float32` values mapping radial distance from the distortion center to a correction factor. The number of entries is `file_size_in_bytes / 4`. The filenames correspond to the `frame` field in `odometry.csv`.
 
+`sample_metadata.json` links the video dataset folder back to the current sample capture. It stores the `sample_id`, sample flag, sample type, site, and final dataset folder name, so the exported video folder can be matched to the sample photo CSV without inspecting the image manually.
+
 The `imu.csv` file contains timestamps, linear acceleration readings and angular rotation readings. The first line is a header. The meaning of the fields are:
 
 | Field | <div style="width: 500px">Meaning</div> |
@@ -65,4 +68,3 @@ The `imu.csv` file contains timestamps, linear acceleration readings and angular
 | alpha\_x | Rotation in rad/s around the x-axis |
 | alpha\_y | Rotation in rad/s around the y-axis |
 | alpha\_z | Rotation in rad/s around the z-axis |
-

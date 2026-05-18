@@ -55,6 +55,10 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
     override func viewWillAppear(_ animated: Bool) {
         self.chosenFpsSetting = UserDefaults.standard.integer(forKey: FpsUserDefaultsKey)
         updateFpsSetting()
+        if let sampleContext = SampleContextStore.shared.current {
+            isImportantTree = sampleContext.isImportant
+            updateImportantButton()
+        }
     }
 
     override func viewDidLoad() {
@@ -171,7 +175,12 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         // fresh location fix rather than a stale or nil value.
         LocationMetadataManager.shared.start()
         importantButton.isEnabled = false
-        datasetEncoder = DatasetEncoder(arConfiguration: arConfiguration!, fpsDivider: FpsDividers[chosenFpsSetting], isImportant: isImportantTree)
+        datasetEncoder = DatasetEncoder(
+            arConfiguration: arConfiguration!,
+            fpsDivider: FpsDividers[chosenFpsSetting],
+            isImportant: isImportantTree,
+            sampleContext: SampleContextStore.shared.current
+        )
         startRawIMU()
     }
 
