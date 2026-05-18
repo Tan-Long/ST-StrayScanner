@@ -23,7 +23,7 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - `Huong lay mau` la nut chon rieng `Upslope` / `Downslope`.
 - `Huong camera nhin vao cay` va `Huong manh xam` duoc cap nhat theo heading realtime cua camera streaming; huong manh xam la huong nguoc lai voi huong camera, tuc huong be mat di ra moi truong.
 - Simulator co mock camera de xem UI va tao anh/data gia khi khong co iPhone.
-- Sau khi chup sample, app luu `Sample ID` hien tai de man hinh quay video tu dong gan vao ten thu muc video, vi du `cay_0001_1805_M-1.1*` neu sample co flag.
+- Sau khi chup sample, app luu `Sample ID` hien tai de man hinh quay video tu dong dien vao o `Sample ID`; nguoi dung co the sua gia tri nay truoc khi quay, va gia tri cuoi cung trong o nhap se duoc gan vao ten thu muc video, vi du `cay_0001_1805_M-1.1*` neu sample co flag.
 - Moi thu muc video co them `sample_metadata.json` de map nguoc ve `Sample ID`, flag, loai mau va site.
 - Metadata tren anh gom:
   - Ten file anh

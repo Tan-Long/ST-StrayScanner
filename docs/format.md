@@ -55,7 +55,7 @@ The `odometry.csv` file contains the camera pose and intrinsics for each frame. 
 
 The `distortion/` directory contains per-frame lens distortion lookup tables, present only when the device exposes calibration data. Each `.bin` file is a raw array of little-endian `float32` values mapping radial distance from the distortion center to a correction factor. The number of entries is `file_size_in_bytes / 4`. The filenames correspond to the `frame` field in `odometry.csv`.
 
-`sample_metadata.json` links the video dataset folder back to the current sample capture. It stores the `sample_id`, sample flag, sample type, site, and final dataset folder name, so the exported video folder can be matched to the sample photo CSV without inspecting the image manually.
+`sample_metadata.json` links the video dataset folder back to the Sample ID chosen on the recording screen. The field is auto-filled from the latest sample photo when available, but the user can edit it before recording. It stores the final `sample_id`, sample flag, sample type, site, and final dataset folder name, so the exported video folder can be matched to the sample photo CSV without inspecting the image manually.
 
 The `imu.csv` file contains timestamps, linear acceleration readings and angular rotation readings. The first line is a header. The meaning of the fields are:
 
