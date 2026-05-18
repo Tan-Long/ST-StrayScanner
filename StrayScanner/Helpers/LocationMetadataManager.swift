@@ -226,6 +226,7 @@ class LocationMetadataManager: NSObject, CLLocationManagerDelegate {
         lock.lock()
         latestLocation = loc
         lock.unlock()
+        maybeReverseGeocode(location: loc)
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {

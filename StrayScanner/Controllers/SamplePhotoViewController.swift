@@ -6,6 +6,8 @@
 import UIKit
 import AVFoundation
 import CoreLocation
+import ImageIO
+import UniformTypeIdentifiers
 
 class SamplePhotoViewController: UIViewController {
 
@@ -557,7 +559,101 @@ class SamplePhotoViewController: UIViewController {
             )
         }
 
-        return annotatedImage.jpegData(compressionQuality: 0.94) ?? imageData
+        let metadata = jpegMetadata(
+            filename: filename,
+            sampleID: sampleID,
+            capturedAt: capturedAt,
+            location: location,
+            heading: heading,
+            place: place,
+            snapshot: snapshot
+        )
+        return jpegData(image: annotatedImage, metadata: metadata) ?? annotatedImage.jpegData(compressionQuality: 0.94) ?? imageData
+    }
+
+    private func jpegMetadata(
+        filename: String,
+        sampleID: String,
+        capturedAt: Date,
+        location: CLLocation?,
+        heading: HeadingInfo?,
+        place: String,
+        snapshot: SampleCaptureSnapshot
+    ) -> [CFString: Any] {
+        let iso = ISO8601DateFormatter().string(from: capturedAt)
+        var sampleData: [String: Any] = [
+            "file_anh": filename,
+            "sample_id": sampleID,
+            "ten_mau": snapshot.tenMau,
+            "loai_mau": snapshot.loaiMau,
+            "ngay_lay": iso,
+            "location": place,
+            "site": snapshot.site,
+            "huong_manh_xam": snapshot.huongManhXam,
+            "huong_lay_mau": snapshot.huongLayMau
+        ]
+
+        if let location = location {
+            sampleData["lat"] = location.coordinate.latitude
+            sampleData["long"] = location.coordinate.longitude
+            sampleData["gps_accuracy_m"] = max(location.horizontalAccuracy, 0)
+            sampleData["altitude_m"] = location.altitude
+        }
+        if let heading = heading {
+            sampleData["heading_degree"] = heading.degrees
+            sampleData["heading_cardinal"] = heading.cardinal
+        }
+
+        let jsonData = try? JSONSerialization.data(withJSONObject: sampleData, options: [.sortedKeys])
+        let jsonString = jsonData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+
+        let exif: [CFString: Any] = [
+            kCGImagePropertyExifUserComment: jsonString
+        ]
+
+        let tiff: [CFString: Any] = [
+            kCGImagePropertyTIFFImageDescription: jsonString,
+            kCGImagePropertyTIFFSoftware: "Stray Scanner TestLab"
+        ]
+
+        var properties: [CFString: Any] = [
+            kCGImagePropertyExifDictionary: exif,
+            kCGImagePropertyTIFFDictionary: tiff
+        ]
+
+        if let location = location {
+            var gps: [CFString: Any] = [
+                kCGImagePropertyGPSLatitude: abs(location.coordinate.latitude),
+                kCGImagePropertyGPSLatitudeRef: location.coordinate.latitude >= 0 ? "N" : "S",
+                kCGImagePropertyGPSLongitude: abs(location.coordinate.longitude),
+                kCGImagePropertyGPSLongitudeRef: location.coordinate.longitude >= 0 ? "E" : "W",
+                kCGImagePropertyGPSAltitude: abs(location.altitude),
+                kCGImagePropertyGPSAltitudeRef: location.altitude >= 0 ? 0 : 1,
+                kCGImagePropertyGPSHPositioningError: max(location.horizontalAccuracy, 0)
+            ]
+            if let heading = heading {
+                gps[kCGImagePropertyGPSImgDirection] = heading.degrees
+                gps[kCGImagePropertyGPSImgDirectionRef] = "T"
+            }
+            properties[kCGImagePropertyGPSDictionary] = gps
+        }
+
+        return properties
+    }
+
+    private func jpegData(image: UIImage, metadata: [CFString: Any]) -> Data? {
+        guard let cgImage = image.cgImage else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+
+        CGImageDestinationAddImage(destination, cgImage, metadata as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 
     private func showHUD() {
