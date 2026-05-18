@@ -389,6 +389,13 @@ class SampleContextStore {
         defaults.set(site, forKey: siteKey)
     }
 
+    func clear() {
+        defaults.removeObject(forKey: sampleIDKey)
+        defaults.removeObject(forKey: isImportantKey)
+        defaults.removeObject(forKey: loaiMauKey)
+        defaults.removeObject(forKey: siteKey)
+    }
+
     static func folderSafeSampleID(_ sampleID: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_."))
         let scalars = sampleID.unicodeScalars.map { scalar -> Character in
