@@ -24,12 +24,11 @@ class SamplePhotoViewController: UIViewController {
     private let overlayLabel   = UILabel()
     private let scrollView     = UIScrollView()
     private let sampleIDField  = UITextField()
-    private let tenMauField    = UITextField()
-    private let loaiMauSegment = UISegmentedControl(items: ["LU", "TL", "Khác"])
+    private let diaYBtn        = UIButton(type: .system)
+    private let khongDiaYBtn   = UIButton(type: .system)
     private let siteField      = UITextField()
     private let huongPicker    = UIPickerView()
     private let upslopeBtn     = UIButton(type: .system)
-    private let midBtn         = UIButton(type: .system)
     private let downslopeBtn   = UIButton(type: .system)
     private let captureButton  = UIButton(type: .system)
     private let hudLabel       = UILabel()
@@ -37,7 +36,9 @@ class SamplePhotoViewController: UIViewController {
     // MARK: - State
 
     private var selectedHuongLayMau: String?
+    private var selectedLoaiMau: String = "Địa y"
     private var overlayTimer: Timer?
+    private var simulatorPreviewBuilt = false
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     var dismissFunction: (() -> Void)?
 
@@ -48,8 +49,8 @@ class SamplePhotoViewController: UIViewController {
         let place: String
         let capturedAt: Date
         let sampleID: String
-        let tenMau: String
         let site: String
+        let huongCamera: String
         let huongManhXam: String
         let huongLayMau: String
         let loaiMau: String
@@ -69,17 +70,25 @@ class SamplePhotoViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+#if targetEnvironment(simulator)
+        seedSimulatorDefaults()
+#else
         LocationMetadataManager.shared.start()
+#endif
         startOverlayTimer()
         refreshSampleID()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+#if !targetEnvironment(simulator)
         LocationMetadataManager.shared.stop()
+#endif
         overlayTimer?.invalidate()
         overlayTimer = nil
+#if !targetEnvironment(simulator)
         sessionQueue.async { self.captureSession.stopRunning() }
+#endif
     }
 
     override func viewDidLayoutSubviews() {
@@ -90,6 +99,9 @@ class SamplePhotoViewController: UIViewController {
     // MARK: - Camera setup
 
     private func requestCameraAndSetup() {
+#if targetEnvironment(simulator)
+        setupSimulatorPreview()
+#else
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             setupCamera()
@@ -100,6 +112,7 @@ class SamplePhotoViewController: UIViewController {
         default:
             break
         }
+#endif
     }
 
     private func setupCamera() {
@@ -121,6 +134,50 @@ class SamplePhotoViewController: UIViewController {
         previewLayer = layer
 
         sessionQueue.async { self.captureSession.startRunning() }
+    }
+
+    private func setupSimulatorPreview() {
+        guard !simulatorPreviewBuilt else { return }
+        simulatorPreviewBuilt = true
+
+        let mockView = UIView()
+        mockView.translatesAutoresizingMaskIntoConstraints = false
+        mockView.backgroundColor = UIColor(red: 0.08, green: 0.12, blue: 0.10, alpha: 1)
+
+        let title = UILabel()
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.text = "SIMULATOR MOCK CAMERA"
+        title.textColor = .white
+        title.font = .systemFont(ofSize: 18, weight: .bold)
+        title.textAlignment = .center
+
+        let subtitle = UILabel()
+        subtitle.translatesAutoresizingMaskIntoConstraints = false
+        subtitle.text = "Bấm CHỤP MẪU để tạo ảnh/data giả trong thư mục samples"
+        subtitle.textColor = UIColor.white.withAlphaComponent(0.82)
+        subtitle.font = .systemFont(ofSize: 13, weight: .medium)
+        subtitle.textAlignment = .center
+        subtitle.numberOfLines = 2
+
+        mockView.addSubview(title)
+        mockView.addSubview(subtitle)
+        previewView.insertSubview(mockView, at: 0)
+
+        NSLayoutConstraint.activate([
+            mockView.topAnchor.constraint(equalTo: previewView.topAnchor),
+            mockView.leadingAnchor.constraint(equalTo: previewView.leadingAnchor),
+            mockView.trailingAnchor.constraint(equalTo: previewView.trailingAnchor),
+            mockView.bottomAnchor.constraint(equalTo: previewView.bottomAnchor),
+
+            title.centerXAnchor.constraint(equalTo: mockView.centerXAnchor),
+            title.centerYAnchor.constraint(equalTo: mockView.centerYAnchor, constant: -12),
+            title.leadingAnchor.constraint(greaterThanOrEqualTo: mockView.leadingAnchor, constant: 16),
+            title.trailingAnchor.constraint(lessThanOrEqualTo: mockView.trailingAnchor, constant: -16),
+
+            subtitle.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 8),
+            subtitle.leadingAnchor.constraint(equalTo: mockView.leadingAnchor, constant: 24),
+            subtitle.trailingAnchor.constraint(equalTo: mockView.trailingAnchor, constant: -24),
+        ])
     }
 
     // MARK: - Build UI
@@ -183,20 +240,18 @@ class SamplePhotoViewController: UIViewController {
         sampleIDField.borderStyle = .roundedRect
         sampleIDField.clearButtonMode = .whileEditing
         sampleIDField.autocorrectionType = .no
-        sampleIDField.addTarget(self, action: #selector(sampleIDEdited), for: .editingChanged)
         stack.addArrangedSubview(sampleIDField)
-
-        // Tên mẫu
-        stack.addArrangedSubview(fieldLabel("Tên mẫu"))
-        tenMauField.borderStyle = .roundedRect
-        tenMauField.clearButtonMode = .whileEditing
-        stack.addArrangedSubview(tenMauField)
 
         // Loại mẫu
         stack.addArrangedSubview(fieldLabel("Loại mẫu"))
-        loaiMauSegment.selectedSegmentIndex = 0
-        loaiMauSegment.addTarget(self, action: #selector(loaiMauChanged), for: .valueChanged)
-        stack.addArrangedSubview(loaiMauSegment)
+        let loaiMauRow = UIStackView(arrangedSubviews: [diaYBtn, khongDiaYBtn])
+        loaiMauRow.axis = .horizontal
+        loaiMauRow.spacing = 8
+        loaiMauRow.distribution = .fillEqually
+        styleChoiceBtn(diaYBtn, "Địa y")
+        styleChoiceBtn(khongDiaYBtn, "Không địa y")
+        stack.addArrangedSubview(loaiMauRow)
+        refreshLoaiMauBtns()
 
         // Site
         stack.addArrangedSubview(fieldLabel("Site"))
@@ -205,21 +260,22 @@ class SamplePhotoViewController: UIViewController {
         siteField.placeholder = "Tự điền từ địa chỉ GPS"
         stack.addArrangedSubview(siteField)
 
-        // Hướng mảnh xăm
-        stack.addArrangedSubview(fieldLabel("Hướng mảnh xăm"))
+        // Hướng camera / mảnh xăm
+        stack.addArrangedSubview(fieldLabel("Hướng camera / Hướng mảnh xăm"))
         huongPicker.dataSource = self
         huongPicker.delegate   = self
+        huongPicker.isUserInteractionEnabled = false
+        huongPicker.alpha = 0.78
         huongPicker.heightAnchor.constraint(equalToConstant: 100).isActive = true
         stack.addArrangedSubview(huongPicker)
 
         // Hướng lấy mẫu
         stack.addArrangedSubview(fieldLabel("Hướng lấy mẫu"))
-        let huongRow = UIStackView(arrangedSubviews: [upslopeBtn, midBtn, downslopeBtn])
+        let huongRow = UIStackView(arrangedSubviews: [upslopeBtn, downslopeBtn])
         huongRow.axis = .horizontal
         huongRow.spacing = 8
         huongRow.distribution = .fillEqually
         styleHuongBtn(upslopeBtn,  "Upslope")
-        styleHuongBtn(midBtn,      "Mid")
         styleHuongBtn(downslopeBtn,"Downslope")
         stack.addArrangedSubview(huongRow)
     }
@@ -272,6 +328,12 @@ class SamplePhotoViewController: UIViewController {
     }
 
     private func styleHuongBtn(_ btn: UIButton, _ title: String) {
+        styleChoiceBtn(btn, title)
+        btn.removeTarget(self, action: #selector(loaiMauTapped(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(huongLayMauTapped(_:)), for: .touchUpInside)
+    }
+
+    private func styleChoiceBtn(_ btn: UIButton, _ title: String) {
         btn.setTitle(title, for: .normal)
         btn.layer.borderWidth  = 1.5
         btn.layer.borderColor  = UIColor.systemGreen.cgColor
@@ -279,12 +341,20 @@ class SamplePhotoViewController: UIViewController {
         btn.titleLabel?.font   = .systemFont(ofSize: 14, weight: .medium)
         btn.setTitleColor(.systemGreen, for: .normal)
         btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
-        btn.addTarget(self, action: #selector(huongLayMauTapped(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(loaiMauTapped(_:)), for: .touchUpInside)
     }
 
     private func refreshHuongBtns() {
-        for btn in [upslopeBtn, midBtn, downslopeBtn] {
+        for btn in [upslopeBtn, downslopeBtn] {
             let selected = btn.title(for: .normal) == selectedHuongLayMau
+            btn.backgroundColor = selected ? .systemGreen : .clear
+            btn.setTitleColor(selected ? .white : .systemGreen, for: .normal)
+        }
+    }
+
+    private func refreshLoaiMauBtns() {
+        for btn in [diaYBtn, khongDiaYBtn] {
+            let selected = btn.title(for: .normal) == selectedLoaiMau
             btn.backgroundColor = selected ? .systemGreen : .clear
             btn.setTitleColor(selected ? .white : .systemGreen, for: .normal)
         }
@@ -300,6 +370,10 @@ class SamplePhotoViewController: UIViewController {
     }
 
     private func updateOverlay() {
+#if targetEnvironment(simulator)
+        updateSimulatorOverlay()
+        return
+#endif
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd HH:mm:ss"
         var parts: [String] = [df.string(from: Date())]
@@ -312,8 +386,21 @@ class SamplePhotoViewController: UIViewController {
             parts.append(String(format: "%.0fm alt", loc.altitude))
         }
 
-        if let heading = headingInfo(from: LocationMetadataManager.shared.currentHeading) {
-            parts.append(String(format: "%.0f° %@", heading.degrees, heading.cardinal))
+        let heading = headingInfo(from: LocationMetadataManager.shared.currentHeading)
+        syncRealtimeHuongManhXam(heading: heading)
+
+        if let heading = heading {
+            parts.append(String(
+                format: "Camera %.0f° %@",
+                heading.degrees,
+                heading.cardinal
+            ))
+            let outward = outwardFacingInfo(from: heading)
+            parts.append(String(format: "Mảnh xăm %.0f° %@", outward.degrees, outward.cardinal))
+        }
+
+        if let huongLayMau = selectedHuongLayMau {
+            parts.append(huongLayMau)
         }
 
         if let place = LocationMetadataManager.shared.currentPlaceName {
@@ -325,6 +412,28 @@ class SamplePhotoViewController: UIViewController {
         }
 
         overlayLabel.text = " " + parts.joined(separator: " · ") + " "
+    }
+
+    private func updateSimulatorOverlay() {
+        syncRealtimeHuongManhXam(heading: (degrees: 72.0, cardinal: "NE"))
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let parts = [
+            df.string(from: Date()),
+            "21.0285,105.8048 ±5m",
+            "12m alt",
+            "Camera 72° NE",
+            "Mảnh xăm 252° SW",
+            selectedHuongLayMau ?? "Chưa chọn hướng lấy mẫu",
+            "Mock Site - Hanoi"
+        ]
+        overlayLabel.text = " " + parts.joined(separator: " · ") + " "
+    }
+
+    private func seedSimulatorDefaults() {
+        if siteField.text?.isEmpty ?? true {
+            siteField.text = "Mock Site - Hanoi"
+        }
     }
 
     private func cardinal(for degrees: Double) -> String {
@@ -340,25 +449,62 @@ class SamplePhotoViewController: UIViewController {
         return (degrees, cardinal(for: degrees))
     }
 
+    private func outwardFacingInfo(from cameraHeading: HeadingInfo) -> HeadingInfo {
+        let degrees = normalizeDegrees(cameraHeading.degrees + 180)
+        return (degrees, cardinal(for: degrees))
+    }
+
+    private func syncRealtimeHuongManhXam(heading: HeadingInfo?) {
+        guard let heading = heading else { return }
+        let outward = outwardFacingInfo(from: heading)
+        if let row = huongManhXamOptions.firstIndex(of: outward.cardinal) {
+            huongPicker.selectRow(row, inComponent: 0, animated: true)
+        }
+    }
+
+    private func normalizeDegrees(_ degrees: Double) -> Double {
+        var d = degrees.truncatingRemainder(dividingBy: 360)
+        if d < 0 { d += 360 }
+        return d
+    }
+
+    private func huongManhXam(from heading: HeadingInfo?) -> HeadingInfo? {
+        guard let heading = heading else { return nil }
+        return outwardFacingInfo(from: heading)
+    }
+
+    private func selectedHuongManhXamCardinal() -> String {
+        huongManhXamOptions[huongPicker.selectedRow(inComponent: 0)]
+    }
+
+    private func selectedCameraCardinal(from heading: HeadingInfo?) -> String {
+        if let heading = heading {
+            return heading.cardinal
+        }
+        let selected = selectedHuongManhXamCardinal()
+        if let index = huongManhXamOptions.firstIndex(of: selected) {
+            return huongManhXamOptions[(index + 4) % huongManhXamOptions.count]
+        }
+        return ""
+    }
+
     // MARK: - Sample ID
 
     private func currentLoaiMau() -> String {
-        ["LU", "TL", "Khác"][loaiMauSegment.selectedSegmentIndex]
+        selectedLoaiMau
     }
 
     private func refreshSampleID() {
-        let prefix = "\(currentLoaiMau())-1"
+        let prefix = sampleIDPrefix()
         sampleIDField.text = SampleLogger.shared.nextSampleID(prefix: prefix)
-        syncTenMau()
     }
 
-    private func syncTenMau() {
-        guard let id = sampleIDField.text, !id.isEmpty else { return }
-        if let dot = id.range(of: ".", options: .backwards) {
-            tenMauField.text = String(id[..<dot.lowerBound])
-        } else {
-            tenMauField.text = id
+    private func sampleIDPrefix() -> String {
+        let id = sampleIDField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if let dot = id.range(of: ".", options: .backwards), dot.lowerBound > id.startIndex {
+            return String(id[..<dot.lowerBound])
         }
+        return id.isEmpty ? "M-1" : id
     }
 
     private func advanceSampleID() {
@@ -366,14 +512,15 @@ class SamplePhotoViewController: UIViewController {
         if let dot = id.range(of: ".", options: .backwards) {
             let prefix = String(id[..<dot.lowerBound])
             sampleIDField.text = SampleLogger.shared.nextSampleID(prefix: prefix)
-            syncTenMau()
         }
     }
 
     // MARK: - Actions
 
-    @objc private func sampleIDEdited()      { syncTenMau() }
-    @objc private func loaiMauChanged()      { refreshSampleID() }
+    @objc private func loaiMauTapped(_ sender: UIButton) {
+        selectedLoaiMau = sender.title(for: .normal) ?? "Địa y"
+        refreshLoaiMauBtns()
+    }
 
     @objc private func huongLayMauTapped(_ sender: UIButton) {
         selectedHuongLayMau = sender.title(for: .normal)
@@ -390,16 +537,47 @@ class SamplePhotoViewController: UIViewController {
             present(alert, animated: true)
             return
         }
+#if targetEnvironment(simulator)
+        let snapshot = currentCaptureSnapshot()
+        let imageData = simulatorMockImageData(snapshot: snapshot)
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.saveRecord(imageData: imageData, snapshot: snapshot)
+        }
+#else
         let settings = AVCapturePhotoSettings()
         settings.flashMode = .auto
         photoOutput.capturePhoto(with: settings, delegate: self)
+#endif
     }
 
     // MARK: - Save record
 
     private func currentCaptureSnapshot() -> SampleCaptureSnapshot {
+#if targetEnvironment(simulator)
+        let location = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: 21.028511, longitude: 105.804817),
+            altitude: 12.4,
+            horizontalAccuracy: 5.0,
+            verticalAccuracy: 3.0,
+            timestamp: Date()
+        )
+        return SampleCaptureSnapshot(
+            location: location,
+            heading: (degrees: 72.0, cardinal: "NE"),
+            place: "Mock Site - Hanoi",
+            capturedAt: Date(),
+            sampleID: sampleIDField.text ?? "TC-001-1.1",
+            site: siteField.text ?? "Mock Site - Hanoi",
+            huongCamera: "NE",
+            huongManhXam: "SW",
+            huongLayMau: selectedHuongLayMau ?? "Upslope",
+            loaiMau: currentLoaiMau()
+        )
+#else
         let location = LocationMetadataManager.shared.currentLocation
         let heading = headingInfo(from: LocationMetadataManager.shared.currentHeading)
+        syncRealtimeHuongManhXam(heading: heading)
+        let huongManhXam = self.huongManhXam(from: heading)?.cardinal ?? selectedHuongManhXamCardinal()
         let place = LocationMetadataManager.shared.currentPlaceName ?? ""
         return SampleCaptureSnapshot(
             location: location,
@@ -407,12 +585,13 @@ class SamplePhotoViewController: UIViewController {
             place: place,
             capturedAt: Date(),
             sampleID: sampleIDField.text ?? "UNKNOWN",
-            tenMau: tenMauField.text ?? "",
             site: siteField.text ?? "",
-            huongManhXam: huongManhXamOptions[huongPicker.selectedRow(inComponent: 0)],
+            huongCamera: selectedCameraCardinal(from: heading),
+            huongManhXam: huongManhXam,
             huongLayMau: selectedHuongLayMau ?? "",
             loaiMau: currentLoaiMau()
         )
+#endif
     }
 
     private func saveRecord(imageData: Data, snapshot: SampleCaptureSnapshot) {
@@ -435,19 +614,20 @@ class SamplePhotoViewController: UIViewController {
         do { try annotatedImageData.write(to: fileURL) }
         catch { print("SamplePhoto: failed to write JPEG – \(error)") }
 
+        let outwardHeading = snapshot.heading.map { outwardFacingInfo(from: $0) }
         let record = SampleRecord(
             sampleID:      snapshot.sampleID,
-            tenMau:        snapshot.tenMau,
             latitude:      snapshot.location?.coordinate.latitude,
             longitude:     snapshot.location?.coordinate.longitude,
             gpsAccuracy:   snapshot.location.map { max($0.horizontalAccuracy, 0) },
             location:      snapshot.place,
             site:          snapshot.site,
+            huongCamera:   snapshot.huongCamera,
             huongManhXam:  snapshot.huongManhXam,
             huongLayMau:   snapshot.huongLayMau,
             altitude:      snapshot.location?.altitude,
-            headingDegrees: snapshot.heading?.degrees,
-            headingCardinal: snapshot.heading?.cardinal,
+            headingDegrees: outwardHeading?.degrees,
+            headingCardinal: outwardHeading?.cardinal,
             loaiMau:       snapshot.loaiMau,
             ngayLay:       tsDisplay.string(from: snapshot.capturedAt),
             fileAnh:       filename
@@ -460,6 +640,49 @@ class SamplePhotoViewController: UIViewController {
             self?.showHUD()
             self?.advanceSampleID()
         }
+    }
+
+    private func simulatorMockImageData(snapshot: SampleCaptureSnapshot) -> Data {
+        let size = CGSize(width: 1600, height: 1200)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { _ in
+            UIColor(red: 0.10, green: 0.14, blue: 0.12, alpha: 1).setFill()
+            UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+
+            UIColor(red: 0.22, green: 0.38, blue: 0.26, alpha: 1).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 1020, y: 190, width: 260, height: 260)).fill()
+
+            UIColor(red: 0.48, green: 0.35, blue: 0.22, alpha: 1).setFill()
+            UIBezierPath(
+                roundedRect: CGRect(x: 720, y: 220, width: 150, height: 820),
+                cornerRadius: 28
+            ).fill()
+
+            UIColor(red: 0.25, green: 0.47, blue: 0.28, alpha: 1).setFill()
+            for rect in [
+                CGRect(x: 560, y: 150, width: 280, height: 190),
+                CGRect(x: 800, y: 120, width: 320, height: 220),
+                CGRect(x: 610, y: 340, width: 430, height: 190)
+            ] {
+                UIBezierPath(ovalIn: rect).fill()
+            }
+
+            let title = "MOCK SAMPLE PHOTO"
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 56, weight: .bold),
+                .foregroundColor: UIColor.white.withAlphaComponent(0.88)
+            ]
+            title.draw(at: CGPoint(x: 70, y: 70), withAttributes: attrs)
+
+            let subtitle = "\(snapshot.sampleID) · \(snapshot.loaiMau) · \(snapshot.huongLayMau)"
+            let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 34, weight: .semibold),
+                .foregroundColor: UIColor.white.withAlphaComponent(0.72)
+            ]
+            subtitle.draw(at: CGPoint(x: 74, y: 140), withAttributes: subtitleAttrs)
+        }
+
+        return image.jpegData(compressionQuality: 0.95) ?? Data()
     }
 
     private func imageDataWithMetadataOverlay(
@@ -480,7 +703,6 @@ class SamplePhotoViewController: UIViewController {
         var lines: [String] = [
             "File: \(filename)",
             "Sample ID: \(sampleID)",
-            "Ten mau: \(snapshot.tenMau)",
             "Loai mau: \(snapshot.loaiMau)",
             df.string(from: capturedAt)
         ]
@@ -488,6 +710,7 @@ class SamplePhotoViewController: UIViewController {
         if !snapshot.site.isEmpty {
             lines.append("Site: \(snapshot.site)")
         }
+        lines.append("Huong camera: \(snapshot.huongCamera)")
         lines.append("Huong manh xam: \(snapshot.huongManhXam)")
         lines.append("Huong lay mau: \(snapshot.huongLayMau)")
 
@@ -502,7 +725,9 @@ class SamplePhotoViewController: UIViewController {
         }
 
         if let heading = heading {
-            lines.append(String(format: "Heading: %.0f° %@", heading.degrees, heading.cardinal))
+            let outward = outwardFacingInfo(from: heading)
+            lines.append(String(format: "Camera heading: %.0f° %@", heading.degrees, heading.cardinal))
+            lines.append(String(format: "Manh xam heading: %.0f° %@", outward.degrees, outward.cardinal))
         }
 
         if !place.isEmpty {
@@ -584,11 +809,11 @@ class SamplePhotoViewController: UIViewController {
         var sampleData: [String: Any] = [
             "file_anh": filename,
             "sample_id": sampleID,
-            "ten_mau": snapshot.tenMau,
             "loai_mau": snapshot.loaiMau,
             "ngay_lay": iso,
             "location": place,
             "site": snapshot.site,
+            "huong_camera": snapshot.huongCamera,
             "huong_manh_xam": snapshot.huongManhXam,
             "huong_lay_mau": snapshot.huongLayMau
         ]
@@ -600,8 +825,11 @@ class SamplePhotoViewController: UIViewController {
             sampleData["altitude_m"] = location.altitude
         }
         if let heading = heading {
-            sampleData["heading_degree"] = heading.degrees
-            sampleData["heading_cardinal"] = heading.cardinal
+            let outward = outwardFacingInfo(from: heading)
+            sampleData["camera_heading_degree"] = heading.degrees
+            sampleData["camera_heading_cardinal"] = heading.cardinal
+            sampleData["heading_degree"] = outward.degrees
+            sampleData["heading_cardinal"] = outward.cardinal
         }
 
         let jsonData = try? JSONSerialization.data(withJSONObject: sampleData, options: [.sortedKeys])
@@ -632,7 +860,7 @@ class SamplePhotoViewController: UIViewController {
                 kCGImagePropertyGPSHPositioningError: max(location.horizontalAccuracy, 0)
             ]
             if let heading = heading {
-                gps[kCGImagePropertyGPSImgDirection] = heading.degrees
+                gps[kCGImagePropertyGPSImgDirection] = outwardFacingInfo(from: heading).degrees
                 gps[kCGImagePropertyGPSImgDirectionRef] = "T"
             }
             properties[kCGImagePropertyGPSDictionary] = gps
