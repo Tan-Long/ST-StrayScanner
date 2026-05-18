@@ -292,6 +292,8 @@ class DatasetEncoder {
     public let cameraMatrixPath: URL
     public let odometryPath: URL
     public let imuPath: URL
+    public let sampleID: String?
+    public let sampleIsImportant: Bool
     public var status = Status.allGood
     private let queue: DispatchQueue
     
@@ -299,14 +301,24 @@ class DatasetEncoder {
     private var latestGyroscopeData: (timestamp: Double, data: simd_double3)?
 
 
-    init(arConfiguration: ARWorldTrackingConfiguration, fpsDivider: Int = 1, isImportant: Bool = false) {
+    init(
+        arConfiguration: ARWorldTrackingConfiguration,
+        fpsDivider: Int = 1,
+        isImportant: Bool = false,
+        sampleContext: SampleContext? = nil
+    ) {
         self.frameInterval = fpsDivider
         self.queue = DispatchQueue(label: "encoderQueue")
+        self.sampleID = sampleContext?.sampleID
+        self.sampleIsImportant = isImportant || (sampleContext?.isImportant ?? false)
         
         let width = arConfiguration.videoFormat.imageResolution.width
         let height = arConfiguration.videoFormat.imageResolution.height
         let theId = UUID()
-        datasetDirectory = DatasetEncoder.createDirectory(isImportant: isImportant)
+        datasetDirectory = DatasetEncoder.createDirectory(
+            sampleID: sampleContext?.sampleID,
+            isImportant: self.sampleIsImportant
+        )
         self.id = theId
         self.rgbFilePath = datasetDirectory.appendingPathComponent("rgb.mp4")
         self.rgbEncoder = VideoEncoder(file: self.rgbFilePath, width: width, height: height)
@@ -325,6 +337,7 @@ class DatasetEncoder {
         let locationJSONPath = datasetDirectory.appendingPathComponent("location.json")
         self.locationJSONWriter = LocationJSONWriter(url: locationJSONPath)
         self.pointCloudEncoder = PointCloudEncoder(datasetDirectory: datasetDirectory)
+        writeSampleMetadata(sampleContext: sampleContext)
     }
 
     func add(frame: ARFrame, locationMetadata: FrameLocationMetadata? = nil) {
@@ -449,16 +462,58 @@ class DatasetEncoder {
         }
     }
 
-    static private func createDirectory(isImportant: Bool) -> URL {
+    private func writeSampleMetadata(sampleContext: SampleContext?) {
+        let url = datasetDirectory.appendingPathComponent("sample_metadata.json")
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        var dict: [String: Any] = [
+            "dataset_folder": datasetDirectory.lastPathComponent,
+            "recorded_at": formatter.string(from: Date()),
+            "flag": sampleIsImportant ? "*" : "",
+            "is_important": sampleIsImportant
+        ]
+
+        if let sampleContext = sampleContext {
+            dict["sample_id"] = sampleContext.sampleID
+            dict["sample_loai_mau"] = sampleContext.loaiMau
+            dict["sample_site"] = sampleContext.site
+            dict["sample_flag"] = sampleContext.isImportant ? "*" : ""
+        } else {
+            dict["sample_id"] = NSNull()
+            dict["sample_loai_mau"] = NSNull()
+            dict["sample_site"] = NSNull()
+            dict["sample_flag"] = NSNull()
+        }
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: url)
+        } catch let error {
+            print("Could not write sample_metadata.json: \(error.localizedDescription)")
+        }
+    }
+
+    static private func createDirectory(sampleID: String?, isImportant: Bool) -> URL {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let day = datasetDayString()
         var datasetNumber = nextDatasetNumber(in: url)
-        var directoryName = datasetFolderName(number: datasetNumber, day: day, isImportant: isImportant)
+        var directoryName = datasetFolderName(
+            number: datasetNumber,
+            day: day,
+            sampleID: sampleID,
+            isImportant: isImportant
+        )
         var directory = URL(fileURLWithPath: directoryName, relativeTo: url)
 
         while FileManager.default.fileExists(atPath: directory.path) {
             datasetNumber += 1
-            directoryName = datasetFolderName(number: datasetNumber, day: day, isImportant: isImportant)
+            directoryName = datasetFolderName(
+                number: datasetNumber,
+                day: day,
+                sampleID: sampleID,
+                isImportant: isImportant
+            )
             directory = URL(fileURLWithPath: directoryName, relativeTo: url)
         }
 
@@ -470,9 +525,10 @@ class DatasetEncoder {
         return directory
     }
 
-    static private func datasetFolderName(number: Int, day: String, isImportant: Bool) -> String {
+    static private func datasetFolderName(number: Int, day: String, sampleID: String?, isImportant: Bool) -> String {
+        let sampleSuffix = sampleID.map { "_\(SampleContextStore.folderSafeSampleID($0))" } ?? ""
         let suffix = isImportant ? "*" : ""
-        return String(format: "cay_%04d_%@%@", number, day, suffix)
+        return String(format: "cay_%04d_%@%@%@", number, day, sampleSuffix, suffix)
     }
 
     static private func datasetDayString(date: Date = Date()) -> String {

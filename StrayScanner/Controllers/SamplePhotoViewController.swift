@@ -30,6 +30,7 @@ class SamplePhotoViewController: UIViewController {
     private let huongPicker    = UIPickerView()
     private let upslopeBtn     = UIButton(type: .system)
     private let downslopeBtn   = UIButton(type: .system)
+    private let importantButton = UIButton(type: .system)
     private let captureButton  = UIButton(type: .system)
     private let hudLabel       = UILabel()
 
@@ -37,6 +38,7 @@ class SamplePhotoViewController: UIViewController {
 
     private var selectedHuongLayMau: String?
     private var selectedLoaiMau: String = "Địa y"
+    private var isImportantSample: Bool = false
     private var overlayTimer: Timer?
     private var simulatorPreviewBuilt = false
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -54,6 +56,7 @@ class SamplePhotoViewController: UIViewController {
         let huongManhXam: String
         let huongLayMau: String
         let loaiMau: String
+        let isImportant: Bool
     }
 
     // MARK: - Lifecycle
@@ -242,6 +245,17 @@ class SamplePhotoViewController: UIViewController {
         sampleIDField.autocorrectionType = .no
         stack.addArrangedSubview(sampleIDField)
 
+        // Flag
+        stack.addArrangedSubview(fieldLabel("Flag"))
+        importantButton.setTitle("☆", for: .normal)
+        importantButton.titleLabel?.font = .systemFont(ofSize: 30, weight: .semibold)
+        importantButton.layer.cornerRadius = 8
+        importantButton.layer.masksToBounds = true
+        importantButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        importantButton.addTarget(self, action: #selector(importantTapped), for: .touchUpInside)
+        stack.addArrangedSubview(importantButton)
+        refreshImportantButton()
+
         // Loại mẫu
         stack.addArrangedSubview(fieldLabel("Loại mẫu"))
         let loaiMauRow = UIStackView(arrangedSubviews: [diaYBtn, khongDiaYBtn])
@@ -403,6 +417,9 @@ class SamplePhotoViewController: UIViewController {
         if let huongLayMau = selectedHuongLayMau {
             parts.append(huongLayMau)
         }
+        if isImportantSample {
+            parts.append("*")
+        }
 
         let place = LocationMetadataManager.shared.currentPlaceName
         syncSiteFromGPS(place: place, location: LocationMetadataManager.shared.currentLocation)
@@ -423,6 +440,7 @@ class SamplePhotoViewController: UIViewController {
             "12m alt",
             "Camera 72° NE",
             "Mảnh xăm 252° SW",
+            isImportantSample ? "*" : "Không flag",
             selectedHuongLayMau ?? "Chưa chọn hướng lấy mẫu",
             "Mock Site - Hanoi"
         ]
@@ -511,6 +529,14 @@ class SamplePhotoViewController: UIViewController {
         selectedLoaiMau
     }
 
+    private func refreshImportantButton() {
+        importantButton.setTitle(isImportantSample ? "*" : "☆", for: .normal)
+        importantButton.backgroundColor = isImportantSample ? UIColor.systemYellow : UIColor.clear
+        importantButton.layer.borderWidth = 1.5
+        importantButton.layer.borderColor = UIColor.systemYellow.cgColor
+        importantButton.setTitleColor(isImportantSample ? UIColor.black : UIColor.systemYellow, for: .normal)
+    }
+
     private func refreshSampleID() {
         let prefix = sampleIDPrefix()
         sampleIDField.text = SampleLogger.shared.nextSampleID(prefix: prefix)
@@ -537,6 +563,11 @@ class SamplePhotoViewController: UIViewController {
     @objc private func loaiMauTapped(_ sender: UIButton) {
         selectedLoaiMau = sender.title(for: .normal) ?? "Địa y"
         refreshLoaiMauBtns()
+    }
+
+    @objc private func importantTapped() {
+        isImportantSample.toggle()
+        refreshImportantButton()
     }
 
     @objc private func huongLayMauTapped(_ sender: UIButton) {
@@ -588,7 +619,8 @@ class SamplePhotoViewController: UIViewController {
             huongCamera: "NE",
             huongManhXam: "SW",
             huongLayMau: selectedHuongLayMau ?? "Upslope",
-            loaiMau: currentLoaiMau()
+            loaiMau: currentLoaiMau(),
+            isImportant: isImportantSample
         )
 #else
         let location = LocationMetadataManager.shared.currentLocation
@@ -607,7 +639,8 @@ class SamplePhotoViewController: UIViewController {
             huongCamera: selectedCameraCardinal(from: heading),
             huongManhXam: huongManhXam,
             huongLayMau: selectedHuongLayMau ?? "",
-            loaiMau: currentLoaiMau()
+            loaiMau: currentLoaiMau(),
+            isImportant: isImportantSample
         )
 #endif
     }
@@ -616,7 +649,8 @@ class SamplePhotoViewController: UIViewController {
         let tsFile = DateFormatter(); tsFile.dateFormat = "yyyyMMdd_HHmmss"
         let tsDisplay = DateFormatter(); tsDisplay.dateStyle = .medium; tsDisplay.timeStyle = .short
 
-        let filename = "\(snapshot.sampleID)_\(tsFile.string(from: snapshot.capturedAt)).jpg"
+        let flagSuffix = snapshot.isImportant ? "*" : ""
+        let filename = "\(snapshot.sampleID)\(flagSuffix)_\(tsFile.string(from: snapshot.capturedAt)).jpg"
         let fileURL  = SampleLogger.shared.samplesDirectory.appendingPathComponent(filename)
         let annotatedImageData = imageDataWithMetadataOverlay(
             imageData: imageData,
@@ -635,6 +669,7 @@ class SamplePhotoViewController: UIViewController {
         let outwardHeading = snapshot.heading.map { outwardFacingInfo(from: $0) }
         let record = SampleRecord(
             sampleID:      snapshot.sampleID,
+            isImportant:   snapshot.isImportant,
             latitude:      snapshot.location?.coordinate.latitude,
             longitude:     snapshot.location?.coordinate.longitude,
             gpsAccuracy:   snapshot.location.map { max($0.horizontalAccuracy, 0) },
@@ -653,6 +688,13 @@ class SamplePhotoViewController: UIViewController {
 
         do { try SampleLogger.shared.append(record: record) }
         catch { print("SamplePhoto: failed to log record – \(error)") }
+
+        SampleContextStore.shared.save(
+            sampleID: snapshot.sampleID,
+            isImportant: snapshot.isImportant,
+            loaiMau: snapshot.loaiMau,
+            site: snapshot.site
+        )
 
         DispatchQueue.main.async { [weak self] in
             self?.showHUD()
@@ -692,7 +734,8 @@ class SamplePhotoViewController: UIViewController {
             ]
             title.draw(at: CGPoint(x: 70, y: 70), withAttributes: attrs)
 
-            let subtitle = "\(snapshot.sampleID) · \(snapshot.loaiMau) · \(snapshot.huongLayMau)"
+            let flag = snapshot.isImportant ? " · *" : ""
+            let subtitle = "\(snapshot.sampleID)\(flag) · \(snapshot.loaiMau) · \(snapshot.huongLayMau)"
             let subtitleAttrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 34, weight: .semibold),
                 .foregroundColor: UIColor.white.withAlphaComponent(0.72)
@@ -721,6 +764,7 @@ class SamplePhotoViewController: UIViewController {
         var lines: [String] = [
             "File: \(filename)",
             "Sample ID: \(sampleID)",
+            "Flag: \(snapshot.isImportant ? "*" : "")",
             "Loai mau: \(snapshot.loaiMau)",
             df.string(from: capturedAt)
         ]
@@ -827,6 +871,8 @@ class SamplePhotoViewController: UIViewController {
         var sampleData: [String: Any] = [
             "file_anh": filename,
             "sample_id": sampleID,
+            "flag": snapshot.isImportant ? "*" : "",
+            "is_important": snapshot.isImportant,
             "loai_mau": snapshot.loaiMau,
             "ngay_lay": iso,
             "location": place,

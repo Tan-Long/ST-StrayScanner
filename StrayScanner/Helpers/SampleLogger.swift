@@ -7,6 +7,7 @@ import Foundation
 
 struct SampleRecord {
     let sampleID: String
+    let isImportant: Bool
     let latitude: Double?
     let longitude: Double?
     let gpsAccuracy: Double?
@@ -36,10 +37,11 @@ class SampleLogger {
     private let xlsxURL: URL
 
     private static let csvHeader =
-        "File ảnh,Sample-ID,Loại mẫu,Ngày lấy," +
+        "File ảnh,Sample-ID,Flag,Loại mẫu,Ngày lấy," +
         "Lat,Long,GPS_accuracy_m,Altitude_m,Heading_degree,Heading_cardinal," +
         "Location,Site,Hướng camera nhìn vào cây,Hướng mảnh xăm,Hướng lấy mẫu\n"
-    private static let currentColumnCount = 15
+    private static let currentColumnCount = 16
+    private static let noFlagColumnCount = 15
     private static let previousColumnCount = 16
     private static let noCameraWithTenMauColumnCount = 15
     private static let legacyColumnCount = 12
@@ -94,9 +96,11 @@ class SampleLogger {
         let alt = record.altitude.map  { String($0) } ?? ""
         let heading = record.headingDegrees.map { String($0) } ?? ""
         let headingCardinal = record.headingCardinal ?? ""
+        let flag = record.isImportant ? "*" : ""
 
         let row = [
             escape(record.fileAnh), escape(record.sampleID),
+            flag,
             escape(record.loaiMau), escape(record.ngayLay),
             lat, lon, gpsAccuracy, alt,
             heading, escape(headingCardinal),
@@ -149,6 +153,7 @@ class SampleLogger {
 
         let header = Self.csvHeader.trimmingCharacters(in: .newlines)
         var lines = content.components(separatedBy: "\n")
+        let oldHeader = lines.first ?? ""
         guard lines.first != header else { return }
 
         if !lines.isEmpty {
@@ -160,7 +165,7 @@ class SampleLogger {
 
         let migratedRows = lines
             .filter { !$0.isEmpty }
-            .map { migrateRow($0) }
+            .map { migrateRow($0, sourceHeader: oldHeader) }
             .joined(separator: "\n")
 
         if !migratedRows.isEmpty {
@@ -171,24 +176,30 @@ class SampleLogger {
         try migrated.write(to: csvURL, options: .atomic)
     }
 
-    private func migrateRow(_ row: String) -> String {
+    private func migrateRow(_ row: String, sourceHeader: String) -> String {
         let fields = parseCSVRow(row)
         let migratedFields: [String]
 
         switch fields.count {
         case Self.previousColumnCount:
-            migratedFields = [fields[0], fields[1]] + Array(fields[3...15])
+            if sourceHeader.contains("Tên mẫu") || sourceHeader.contains("Ten mau") {
+                migratedFields = [fields[0], fields[1], ""] + Array(fields[3...15])
+            } else {
+                migratedFields = fields
+            }
+        case Self.noFlagColumnCount where !(sourceHeader.contains("Tên mẫu") || sourceHeader.contains("Ten mau")):
+            migratedFields = [fields[0], fields[1], ""] + Array(fields[2...14])
         case Self.noCameraWithTenMauColumnCount:
-            migratedFields = [fields[0], fields[1]] + Array(fields[3...12]) + [""] + Array(fields[13...14])
+            migratedFields = [fields[0], fields[1], ""] + Array(fields[3...12]) + [""] + Array(fields[13...14])
         case Self.headingLegacyColumnCount:
             migratedFields = [
-                fields[13], fields[0], fields[11], fields[12],
+                fields[13], fields[0], "", fields[11], fields[12],
                 fields[2], fields[3], "", fields[8], fields[9], fields[10],
                 fields[4], fields[5], "", fields[6], fields[7]
             ]
         case Self.legacyColumnCount:
             migratedFields = [
-                fields[11], fields[0], fields[9], fields[10],
+                fields[11], fields[0], "", fields[9], fields[10],
                 fields[2], fields[3], "", fields[8], "", "",
                 fields[4], fields[5], "", fields[6], fields[7]
             ]
@@ -251,5 +262,52 @@ class SampleLogger {
         }
         fields.append(current)
         return fields
+    }
+}
+
+struct SampleContext {
+    let sampleID: String
+    let isImportant: Bool
+    let loaiMau: String
+    let site: String
+}
+
+class SampleContextStore {
+    static let shared = SampleContextStore()
+
+    private let sampleIDKey = "current_sample_id"
+    private let isImportantKey = "current_sample_is_important"
+    private let loaiMauKey = "current_sample_loai_mau"
+    private let siteKey = "current_sample_site"
+    private let defaults = UserDefaults.standard
+
+    private init() {}
+
+    var current: SampleContext? {
+        guard let sampleID = defaults.string(forKey: sampleIDKey), !sampleID.isEmpty else {
+            return nil
+        }
+        return SampleContext(
+            sampleID: sampleID,
+            isImportant: defaults.bool(forKey: isImportantKey),
+            loaiMau: defaults.string(forKey: loaiMauKey) ?? "",
+            site: defaults.string(forKey: siteKey) ?? ""
+        )
+    }
+
+    func save(sampleID: String, isImportant: Bool, loaiMau: String, site: String) {
+        defaults.set(sampleID, forKey: sampleIDKey)
+        defaults.set(isImportant, forKey: isImportantKey)
+        defaults.set(loaiMau, forKey: loaiMauKey)
+        defaults.set(site, forKey: siteKey)
+    }
+
+    static func folderSafeSampleID(_ sampleID: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_."))
+        let scalars = sampleID.unicodeScalars.map { scalar -> Character in
+            allowed.contains(scalar) ? Character(scalar) : "-"
+        }
+        let sanitized = String(scalars).trimmingCharacters(in: CharacterSet(charactersIn: "-_."))
+        return sanitized.isEmpty ? "unknown" : sanitized
     }
 }
