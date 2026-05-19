@@ -147,6 +147,8 @@ struct SessionList: View {
     @ObservedObject var viewModel = SessionListViewModel()
     @State private var showingInfo = false
     @State private var showingResetConfirm = false
+    @State private var resetConfirmationCode = ""
+    @State private var resetConfirmationInput = ""
     @State private var showingShareSheet = false
     @State private var fullExportURL: URL?
     @State private var isCreatingFullExport = false
@@ -247,6 +249,46 @@ struct SessionList: View {
                     .accessibilityIdentifier("sessionList.manageSamplePhotos")
                     Spacer()
                 }
+                HStack {
+                    Spacer()
+                    Button(action: exportAllData) {
+                        HStack {
+                            if isCreatingFullExport {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "archivebox")
+                            }
+                            Text(isCreatingFullExport ? "Đang nén..." : "Xuất ZIP toàn bộ")
+                                .fixedSize()
+                        }
+                        .font(.body)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 18)
+                        .background(isCreatingFullExport ? Color.gray : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(24)
+                        .padding(.bottom, 8)
+                    }
+                    .disabled(isCreatingFullExport)
+                    .accessibilityIdentifier("sessionList.exportAllZip")
+                    Spacer()
+                }
+                HStack {
+                    Spacer()
+                    Button(action: prepareResetConfirmation, label: {
+                        Text("Format / Reset data")
+                            .font(.body)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 18)
+                            .background(Color("DangerColor"))
+                            .foregroundColor(.white)
+                            .cornerRadius(24)
+                            .padding(.bottom, 16)
+                    })
+                    .accessibilityIdentifier("sessionList.resetData")
+                    Spacer()
+                }
                 if (viewModel.sessions.isEmpty) {
                     Spacer()
                 }
@@ -267,12 +309,20 @@ struct SessionList: View {
         }
         .background(Color("BackgroundColor").edgesIgnoringSafeArea(.all))
         .alert("Xoá toàn bộ data?", isPresented: $showingResetConfirm) {
-            Button("Huỷ", role: .cancel) {}
-            Button("Xoá hết", role: .destructive) {
-                viewModel.resetAllData()
+            TextField("Nhập mã xác nhận", text: $resetConfirmationInput)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+            Button("Huỷ", role: .cancel) {
+                clearResetConfirmation()
             }
+            Button("Xoá hết", role: .destructive) {
+                guard resetConfirmationInput.uppercased() == resetConfirmationCode else { return }
+                viewModel.resetAllData()
+                clearResetConfirmation()
+            }
+            .disabled(resetConfirmationInput.uppercased() != resetConfirmationCode)
         } message: {
-            Text("Thao tác này xoá toàn bộ video folders, ảnh sample, file data export và danh sách recording trong app. Không thể hoàn tác.")
+            Text("Thao tác này xoá toàn bộ video folders, ảnh sample, file data export và danh sách recording trong app. Nhập mã \(resetConfirmationCode) để xác nhận. Không thể hoàn tác.")
         }
         .alert("Reset lỗi", isPresented: Binding(
             get: { viewModel.resetError != nil },
@@ -304,6 +354,17 @@ struct SessionList: View {
     }
     }
 
+    private func prepareResetConfirmation() {
+        resetConfirmationCode = Self.makeResetConfirmationCode()
+        resetConfirmationInput = ""
+        showingResetConfirm = true
+    }
+
+    private func clearResetConfirmation() {
+        resetConfirmationCode = ""
+        resetConfirmationInput = ""
+    }
+
     private func exportAllData() {
         isCreatingFullExport = true
         Task {
@@ -321,6 +382,11 @@ struct SessionList: View {
                 }
             }
         }
+    }
+
+    private static func makeResetConfirmationCode() -> String {
+        let characters = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+        return String((0..<5).compactMap { _ in characters.randomElement() })
     }
 }
 
