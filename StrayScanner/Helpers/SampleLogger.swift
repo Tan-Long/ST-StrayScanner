@@ -4,6 +4,10 @@
 //
 
 import Foundation
+import ImageIO
+import Photos
+import UIKit
+import UniformTypeIdentifiers
 
 struct SampleRecord {
     let sampleID: String
@@ -24,17 +28,34 @@ struct SampleRecord {
     let fileAnh: String        // JPEG filename only
 }
 
+struct LidarSampleRecoveryCandidate: Identifiable {
+    let datasetDirectory: URL
+    let videoURL: URL
+    let metadataURL: URL
+    let datasetFolder: String
+    let sampleID: String
+    let isImportant: Bool
+    let loaiMau: String
+    let site: String
+    let recordedAt: Date?
+    let recordedAtText: String
+
+    var id: String { datasetDirectory.path }
+}
+
 class SampleLogger {
     static let shared = SampleLogger()
     private static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
 
     private let samplesDir: URL
+    private let recentlyDeletedDir: URL
     private let csvURL: URL
     // NOTE: True XLSX (OOXML/ZIP) requires a third-party library (e.g. CoreXLSX).
     // exportXLSX() writes the same data as tab-separated values with a .xlsx
     // extension so Excel / Numbers can open it via their CSV import fallback.
     // Replace the body of exportXLSX() with a real library call for full compatibility.
     private let xlsxURL: URL
+    private let deletedCSVURL: URL
 
     private static let csvHeader =
         "File ảnh,Sample-ID,Flag,Loại mẫu,Ngày lấy," +
@@ -42,6 +63,8 @@ class SampleLogger {
         "Hướng camera degree,Hướng camera cardinal," +
         "Hướng mảnh xăm degree,Hướng mảnh xăm cardinal," +
         "Location,Site,Hướng lấy mẫu\n"
+    private static let deletedCSVHeader =
+        csvHeader.trimmingCharacters(in: .newlines) + ",Deleted at\n"
     private static let currentColumnCount = 16
     private static let noFlagColumnCount = 15
     private static let previousColumnCount = 16
@@ -52,8 +75,10 @@ class SampleLogger {
     private init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         samplesDir = docs.appendingPathComponent("samples", isDirectory: true)
+        recentlyDeletedDir = samplesDir.appendingPathComponent("recently_deleted", isDirectory: true)
         csvURL  = samplesDir.appendingPathComponent("samples_log.csv")
         xlsxURL = samplesDir.appendingPathComponent("samples_log.xlsx")
+        deletedCSVURL = recentlyDeletedDir.appendingPathComponent("deleted_samples_log.csv")
         try? FileManager.default.createDirectory(at: samplesDir, withIntermediateDirectories: true)
     }
 
@@ -64,35 +89,227 @@ class SampleLogger {
 
     func sampleImageFiles() -> [URL] {
         try? ensureSamplesDirectory()
-        let files = (try? FileManager.default.contentsOfDirectory(
-            at: samplesDir,
-            includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        )) ?? []
+        return imageFiles(in: samplesDir)
+    }
 
-        return files
-            .filter { url in
-                let ext = url.pathExtension.lowercased()
-                return ext == "jpg" || ext == "jpeg"
-            }
-            .sorted { lhs, rhs in
-                let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-                let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-                return lhsDate > rhsDate
-            }
+    func recentlyDeletedSampleImageFiles() -> [URL] {
+        try? ensureRecentlyDeletedDirectory()
+        return imageFiles(in: recentlyDeletedDir)
     }
 
     func deleteSamplePhoto(filename: String) throws {
         try ensureSamplesDirectory()
+        try ensureRecentlyDeletedDirectory()
         try ensureCurrentCSVHeader()
+        try ensureDeletedCSVHeader()
 
         let photoURL = samplesDir.appendingPathComponent(filename)
+        let deletedURL = recentlyDeletedDir.appendingPathComponent(filename)
+        let photoExists = FileManager.default.fileExists(atPath: photoURL.path)
+        var rows = rows(forPhotoFilename: filename)
+        if rows.isEmpty && photoExists {
+            rows = [fallbackCurrentRow(forPhotoFilename: filename, location: "Orphan sample photo")]
+        }
+        try appendDeletedRows(rows, deletedAt: Date())
+
+        var didMovePhoto = false
+        if photoExists {
+            if FileManager.default.fileExists(atPath: deletedURL.path) {
+                try FileManager.default.removeItem(at: deletedURL)
+            }
+            do {
+                try FileManager.default.moveItem(at: photoURL, to: deletedURL)
+                didMovePhoto = true
+            } catch {
+                try? removeDeletedRows(forPhotoFilename: filename)
+                throw error
+            }
+        }
+
+        do {
+            try removeRows(forPhotoFilename: filename)
+        } catch {
+            if didMovePhoto {
+                try? FileManager.default.moveItem(at: deletedURL, to: photoURL)
+            }
+            try? removeDeletedRows(forPhotoFilename: filename)
+            throw error
+        }
+        exportXLSX()
+    }
+
+    func restoreSamplePhoto(filename: String) throws {
+        try ensureSamplesDirectory()
+        try ensureRecentlyDeletedDirectory()
+        try ensureCurrentCSVHeader()
+        try ensureDeletedCSVHeader()
+
+        let deletedURL = recentlyDeletedDir.appendingPathComponent(filename)
+        let restoredURL = samplesDir.appendingPathComponent(filename)
+
+        if FileManager.default.fileExists(atPath: restoredURL.path) {
+            throw sampleError("Đã có ảnh cùng tên trong danh sách hiện tại.")
+        }
+
+        let hasDeletedPhoto = FileManager.default.fileExists(atPath: deletedURL.path)
+        var rows = deletedRows(forPhotoFilename: filename).map(originalRow(fromDeletedRow:))
+        if rows.isEmpty && hasDeletedPhoto {
+            rows = [fallbackCurrentRow(forPhotoFilename: filename, location: "Restored orphan sample photo")]
+        }
+
+        if hasDeletedPhoto {
+            try FileManager.default.moveItem(at: deletedURL, to: restoredURL)
+        } else {
+            throw sampleError("Không tìm thấy file ảnh trong Đã xoá gần đây.")
+        }
+
+        do {
+            try appendCurrentRows(rows)
+        } catch {
+            try? FileManager.default.moveItem(at: restoredURL, to: deletedURL)
+            throw error
+        }
+        try removeDeletedRows(forPhotoFilename: filename)
+        exportXLSX()
+    }
+
+    func permanentlyDeleteSamplePhoto(filename: String) throws {
+        try ensureRecentlyDeletedDirectory()
+        try ensureDeletedCSVHeader()
+
+        let photoURL = recentlyDeletedDir.appendingPathComponent(filename)
         if FileManager.default.fileExists(atPath: photoURL.path) {
             try FileManager.default.removeItem(at: photoURL)
         }
 
-        try removeRows(forPhotoFilename: filename)
-        exportXLSX()
+        try removeDeletedRows(forPhotoFilename: filename)
+    }
+
+    func lidarSampleRecoveryCandidates() -> [LidarSampleRecoveryCandidate] {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let urls = (try? FileManager.default.contentsOfDirectory(
+            at: documentsURL,
+            includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        return urls
+            .compactMap(lidarSampleRecoveryCandidate(from:))
+            .sorted { lhs, rhs in
+                let lhsDate = lhs.recordedAt ?? modificationDate(for: lhs.datasetDirectory) ?? .distantPast
+                let rhsDate = rhs.recordedAt ?? modificationDate(for: rhs.datasetDirectory) ?? .distantPast
+                return lhsDate > rhsDate
+            }
+    }
+
+    @discardableResult
+    func recoverSamplePhotoFromLidar(
+        candidate: LidarSampleRecoveryCandidate,
+        imageData: Data,
+        selectedTime: TimeInterval
+    ) throws -> String {
+        try ensureSamplesDirectory()
+        try ensureCurrentCSVHeader()
+
+        guard !imageData.isEmpty else {
+            throw sampleError("Frame được chọn không có dữ liệu ảnh.")
+        }
+
+        let fileURL = uniqueRecoveredSampleURL(candidate: candidate, selectedTime: selectedTime)
+        let annotatedImageData = recoveredLidarImageData(
+            imageData: imageData,
+            filename: fileURL.lastPathComponent,
+            candidate: candidate,
+            selectedTime: selectedTime
+        )
+        let tempURL = samplesDir.appendingPathComponent(".\(fileURL.lastPathComponent).tmp")
+        try? FileManager.default.removeItem(at: tempURL)
+        try annotatedImageData.write(to: tempURL, options: .atomic)
+
+        let displayDate = DateFormatter()
+        displayDate.dateStyle = .medium
+        displayDate.timeStyle = .short
+        let ngayLay = displayDate.string(from: candidate.recordedAt ?? Date())
+
+        let record = SampleRecord(
+            sampleID: candidate.sampleID,
+            isImportant: candidate.isImportant,
+            latitude: nil,
+            longitude: nil,
+            gpsAccuracy: nil,
+            location: candidate.datasetFolder,
+            site: candidate.site,
+            huongCameraDegrees: nil,
+            huongCamera: "",
+            huongManhXamDegrees: nil,
+            huongManhXam: "",
+            huongLayMau: "",
+            altitude: nil,
+            loaiMau: candidate.loaiMau,
+            ngayLay: ngayLay,
+            fileAnh: fileURL.lastPathComponent
+        )
+
+        do {
+            try append(record: record)
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw error
+        }
+
+        do {
+            try FileManager.default.moveItem(at: tempURL, to: fileURL)
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            try? removeRows(forPhotoFilename: fileURL.lastPathComponent)
+            exportXLSX()
+            throw error
+        }
+
+        SampleContextStore.shared.save(
+            sampleID: candidate.sampleID,
+            isImportant: candidate.isImportant,
+            loaiMau: candidate.loaiMau,
+            site: candidate.site
+        )
+        backupSamplePhotoToLibrary(imageData: annotatedImageData, filename: fileURL.lastPathComponent)
+        return fileURL.lastPathComponent
+    }
+
+    func backupSamplePhotoToLibrary(imageData: Data, filename: String) {
+#if targetEnvironment(simulator)
+        return
+#else
+        let saveToPhotos = {
+            PHPhotoLibrary.shared().performChanges({
+                let options = PHAssetResourceCreationOptions()
+                options.originalFilename = filename
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: .photo, data: imageData, options: options)
+            }, completionHandler: { success, error in
+                if !success {
+                    print("SampleLogger: failed to save backup to Photos – \(error?.localizedDescription ?? "unknown error")")
+                }
+            })
+        }
+
+        switch PHPhotoLibrary.authorizationStatus(for: .addOnly) {
+        case .authorized, .limited:
+            saveToPhotos()
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+                if status == .authorized || status == .limited {
+                    saveToPhotos()
+                } else {
+                    print("SampleLogger: Photos backup permission was not granted")
+                }
+            }
+        case .denied, .restricted:
+            print("SampleLogger: Photos backup permission denied or restricted")
+        @unknown default:
+            print("SampleLogger: Photos backup permission unknown")
+        }
+#endif
     }
 
     func prepareStorageForExport() {
@@ -226,6 +443,25 @@ class SampleLogger {
 
     // MARK: - Private helpers
 
+    private func imageFiles(in directory: URL) -> [URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        return files
+            .filter { url in
+                let ext = url.pathExtension.lowercased()
+                return ext == "jpg" || ext == "jpeg"
+            }
+            .sorted { lhs, rhs in
+                let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                return lhsDate > rhsDate
+            }
+    }
+
     private func ensureCurrentCSVHeader() throws {
         try ensureSamplesDirectory()
         let fileManager = FileManager.default
@@ -268,6 +504,348 @@ class SampleLogger {
 
     private func ensureSamplesDirectory() throws {
         try FileManager.default.createDirectory(at: samplesDir, withIntermediateDirectories: true)
+    }
+
+    private func ensureRecentlyDeletedDirectory() throws {
+        try FileManager.default.createDirectory(at: recentlyDeletedDir, withIntermediateDirectories: true)
+    }
+
+    private func ensureDeletedCSVHeader() throws {
+        try ensureRecentlyDeletedDirectory()
+        guard !FileManager.default.fileExists(atPath: deletedCSVURL.path) else { return }
+
+        var data = Self.utf8BOM
+        data.append(contentsOf: Self.deletedCSVHeader.utf8)
+        try data.write(to: deletedCSVURL, options: .atomic)
+    }
+
+    private func rows(forPhotoFilename filename: String) -> [String] {
+        existingDataRows().filter { row in
+            parseCSVRow(row).first == filename
+        }
+    }
+
+    private func deletedRows(forPhotoFilename filename: String) -> [String] {
+        dataRows(from: deletedCSVURL).filter { row in
+            parseCSVRow(row).first == filename
+        }
+    }
+
+    private func fallbackCurrentRow(forPhotoFilename filename: String, location: String) -> String {
+        let stem = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
+        let displayDate = DateFormatter()
+        displayDate.dateStyle = .medium
+        displayDate.timeStyle = .short
+        let fields = [
+            filename,
+            stem,
+            "",
+            "",
+            displayDate.string(from: Date()),
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            location,
+            "",
+            ""
+        ]
+        return fields.map(escape).joined(separator: ",")
+    }
+
+    private func appendDeletedRows(_ rows: [String], deletedAt: Date) throws {
+        guard !rows.isEmpty else { return }
+
+        let filenames = rows.compactMap { parseCSVRow($0).first }
+        for filename in filenames {
+            try removeDeletedRows(forPhotoFilename: filename)
+        }
+
+        let deletedAtText = ISO8601DateFormatter().string(from: deletedAt)
+        let rowsWithDeletedAt = rows.map { row -> String in
+            var fields = parseCSVRow(row)
+            while fields.count < Self.currentColumnCount {
+                fields.append("")
+            }
+            fields = Array(fields.prefix(Self.currentColumnCount))
+            fields.append(deletedAtText)
+            return fields.map(escape).joined(separator: ",")
+        }
+
+        try appendRows(rowsWithDeletedAt, to: deletedCSVURL)
+    }
+
+    private func appendCurrentRows(_ rows: [String]) throws {
+        guard !rows.isEmpty else { return }
+
+        let activeFilenames = Set(existingDataRows().compactMap { parseCSVRow($0).first })
+        let rowsToAppend = rows.filter { row in
+            guard let filename = parseCSVRow(row).first else { return true }
+            return !activeFilenames.contains(filename)
+        }
+
+        try appendRows(rowsToAppend, to: csvURL)
+    }
+
+    private func appendRows(_ rows: [String], to url: URL) throws {
+        guard !rows.isEmpty else { return }
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
+        handle.seekToEndOfFile()
+        let text = rows.joined(separator: "\n") + "\n"
+        if let data = text.data(using: .utf8) {
+            handle.write(data)
+        }
+    }
+
+    private func originalRow(fromDeletedRow row: String) -> String {
+        var fields = parseCSVRow(row)
+        while fields.count < Self.currentColumnCount {
+            fields.append("")
+        }
+        fields = Array(fields.prefix(Self.currentColumnCount))
+        return fields.map(escape).joined(separator: ",")
+    }
+
+    private func recoveredLidarImageData(
+        imageData: Data,
+        filename: String,
+        candidate: LidarSampleRecoveryCandidate,
+        selectedTime: TimeInterval
+    ) -> Data {
+        guard let image = UIImage(data: imageData) else { return imageData }
+
+        let recoveredAt = Date()
+        let displayDate = DateFormatter()
+        displayDate.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        var lines: [String] = [
+            "Recovered from LiDAR",
+            "File: \(filename)",
+            "Sample ID: \(candidate.sampleID)",
+            "Flag: \(candidate.isImportant ? "*" : "")",
+            "Loai mau: \(candidate.loaiMau)",
+            "Dataset: \(candidate.datasetFolder)",
+            String(format: "Video time: %.2fs", selectedTime),
+            "Recovered: \(displayDate.string(from: recoveredAt))"
+        ]
+
+        if !candidate.recordedAtText.isEmpty {
+            lines.append("Recorded: \(candidate.recordedAtText)")
+        }
+        if !candidate.site.isEmpty {
+            lines.append("Site: \(candidate.site)")
+        }
+
+        let text = lines.joined(separator: "\n")
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        let annotatedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+
+            let width = image.size.width
+            let margin = max(16, width * 0.025)
+            let padding = max(10, width * 0.012)
+            let fontSize = min(max(width * 0.018, 18), 44)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineSpacing = max(3, fontSize * 0.12)
+
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: fontSize, weight: .semibold),
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: paragraph
+            ]
+            let maxTextSize = CGSize(
+                width: image.size.width - (margin + padding) * 2,
+                height: .greatestFiniteMagnitude
+            )
+            let textRect = text.boundingRect(
+                with: maxTextSize,
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attributes,
+                context: nil
+            ).integral
+            let backgroundRect = CGRect(
+                x: margin,
+                y: margin,
+                width: textRect.width + padding * 2,
+                height: textRect.height + padding * 2
+            )
+
+            UIColor.black.withAlphaComponent(0.58).setFill()
+            UIBezierPath(
+                roundedRect: backgroundRect,
+                cornerRadius: max(6, fontSize * 0.2)
+            ).fill()
+
+            text.draw(
+                with: backgroundRect.insetBy(dx: padding, dy: padding),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attributes,
+                context: nil
+            )
+        }
+
+        let metadata = recoveredLidarJPEGMetadata(
+            filename: filename,
+            candidate: candidate,
+            selectedTime: selectedTime,
+            recoveredAt: recoveredAt
+        )
+        return jpegData(image: annotatedImage, metadata: metadata) ?? annotatedImage.jpegData(compressionQuality: 0.94) ?? imageData
+    }
+
+    private func recoveredLidarJPEGMetadata(
+        filename: String,
+        candidate: LidarSampleRecoveryCandidate,
+        selectedTime: TimeInterval,
+        recoveredAt: Date
+    ) -> [CFString: Any] {
+        let recoveredAtText = ISO8601DateFormatter().string(from: recoveredAt)
+        let sampleData: [String: Any] = [
+            "file_anh": filename,
+            "sample_id": candidate.sampleID,
+            "flag": candidate.isImportant ? "*" : "",
+            "is_important": candidate.isImportant,
+            "loai_mau": candidate.loaiMau,
+            "site": candidate.site,
+            "recovered_from_lidar": true,
+            "recovered_at": recoveredAtText,
+            "source_dataset_folder": candidate.datasetFolder,
+            "source_video": candidate.videoURL.lastPathComponent,
+            "source_video_time_seconds": selectedTime,
+            "source_recorded_at": candidate.recordedAtText
+        ]
+
+        let jsonData = try? JSONSerialization.data(withJSONObject: sampleData, options: [.sortedKeys])
+        let jsonString = jsonData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+
+        return [
+            kCGImagePropertyExifDictionary: [
+                kCGImagePropertyExifUserComment: jsonString
+            ],
+            kCGImagePropertyTIFFDictionary: [
+                kCGImagePropertyTIFFImageDescription: jsonString,
+                kCGImagePropertyTIFFSoftware: "Stray Scanner TestLab"
+            ]
+        ]
+    }
+
+    private func jpegData(image: UIImage, metadata: [CFString: Any]) -> Data? {
+        guard let cgImage = image.cgImage else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+
+        CGImageDestinationAddImage(destination, cgImage, metadata as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
+    }
+
+    private func lidarSampleRecoveryCandidate(from directory: URL) -> LidarSampleRecoveryCandidate? {
+        let values = try? directory.resourceValues(forKeys: [.isDirectoryKey])
+        guard values?.isDirectory == true else { return nil }
+
+        let videoURL = directory.appendingPathComponent("rgb.mp4")
+        let metadataURL = directory.appendingPathComponent("sample_metadata.json")
+        guard
+            FileManager.default.fileExists(atPath: videoURL.path),
+            FileManager.default.fileExists(atPath: metadataURL.path),
+            let data = try? Data(contentsOf: metadataURL),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+
+        let sampleID = metadataString(json["sample_id"])
+        guard !sampleID.isEmpty else { return nil }
+
+        let datasetFolder = metadataString(json["dataset_folder"], fallback: directory.lastPathComponent)
+        let sampleFlag = metadataString(json["sample_flag"])
+        let flag = metadataString(json["flag"])
+        let isImportant = metadataBool(json["is_important"]) ||
+            sampleFlag == "*" ||
+            flag == "*" ||
+            directory.lastPathComponent.hasSuffix("*")
+        let recordedAtText = metadataString(json["recorded_at"])
+        let recordedAt = parseISO8601(recordedAtText)
+
+        return LidarSampleRecoveryCandidate(
+            datasetDirectory: directory,
+            videoURL: videoURL,
+            metadataURL: metadataURL,
+            datasetFolder: datasetFolder,
+            sampleID: sampleID,
+            isImportant: isImportant,
+            loaiMau: metadataString(json["sample_loai_mau"], fallback: "Khôi phục từ LiDAR"),
+            site: metadataString(json["sample_site"]),
+            recordedAt: recordedAt,
+            recordedAtText: recordedAtText
+        )
+    }
+
+    private func uniqueRecoveredSampleURL(
+        candidate: LidarSampleRecoveryCandidate,
+        selectedTime: TimeInterval
+    ) -> URL {
+        let timestamp = DateFormatter()
+        timestamp.locale = Locale(identifier: "en_US_POSIX")
+        timestamp.dateFormat = "yyyyMMdd_HHmmss"
+
+        let sampleID = SampleContextStore.folderSafeSampleID(candidate.sampleID)
+        let dataset = SampleContextStore.folderSafeSampleID(candidate.datasetFolder)
+        let flag = candidate.isImportant ? "*" : ""
+        let frame = String(format: "f%05d", max(0, Int(selectedTime * 100)))
+        let base = "\(sampleID)\(flag)_lidar_\(dataset)_\(frame)_\(timestamp.string(from: Date()))"
+
+        var candidateURL = samplesDir.appendingPathComponent("\(base).jpg")
+        var counter = 2
+        while FileManager.default.fileExists(atPath: candidateURL.path) {
+            candidateURL = samplesDir.appendingPathComponent("\(base)_\(counter).jpg")
+            counter += 1
+        }
+        return candidateURL
+    }
+
+    private func metadataString(_ value: Any?, fallback: String = "") -> String {
+        guard let value = value, !(value is NSNull) else { return fallback }
+        if let string = value as? String {
+            return string.isEmpty ? fallback : string
+        }
+        return "\(value)"
+    }
+
+    private func metadataBool(_ value: Any?) -> Bool {
+        guard let value = value, !(value is NSNull) else { return false }
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        if let string = value as? String {
+            return ["true", "1", "yes", "*"].contains(string.lowercased())
+        }
+        return false
+    }
+
+    private func parseISO8601(_ value: String) -> Date? {
+        guard !value.isEmpty else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+
+    private func modificationDate(for url: URL) -> Date? {
+        try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
     }
 
     private func migrateRow(_ row: String, sourceHeader: String) -> String {
@@ -337,7 +915,14 @@ class SampleLogger {
     }
 
     private func existingDataRows() -> [String] {
-        guard let content = try? String(contentsOf: csvURL, encoding: .utf8) else { return [] }
+        dataRows(from: csvURL)
+    }
+
+    private func dataRows(from url: URL) -> [String] {
+        guard var content = try? String(contentsOf: url, encoding: .utf8) else { return [] }
+        if content.hasPrefix("\u{FEFF}") {
+            content.removeFirst()
+        }
         let lines = content.components(separatedBy: "\n")
         return lines.dropFirst().filter { !$0.isEmpty }
     }
@@ -363,6 +948,37 @@ class SampleLogger {
             data.append(0x0A)
         }
         try data.write(to: csvURL, options: .atomic)
+    }
+
+    private func removeDeletedRows(forPhotoFilename filename: String) throws {
+        guard var content = try? String(contentsOf: deletedCSVURL, encoding: .utf8) else { return }
+        if content.hasPrefix("\u{FEFF}") {
+            content.removeFirst()
+        }
+
+        let lines = content.components(separatedBy: "\n")
+        let rowsToKeep = lines
+            .dropFirst()
+            .filter { !$0.isEmpty }
+            .filter { row in
+                parseCSVRow(row).first != filename
+            }
+
+        var data = Self.utf8BOM
+        data.append(contentsOf: Self.deletedCSVHeader.utf8)
+        if !rowsToKeep.isEmpty {
+            data.append(contentsOf: rowsToKeep.joined(separator: "\n").utf8)
+            data.append(0x0A)
+        }
+        try data.write(to: deletedCSVURL, options: .atomic)
+    }
+
+    private func sampleError(_ message: String) -> NSError {
+        NSError(
+            domain: "SampleLogger",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
     }
 
     private func sampleIDField(of row: String) -> String {

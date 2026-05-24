@@ -10,6 +10,8 @@ Stray Scanner is an iOS app for collecting RGB-D datasets using LiDAR-enabled iO
 
 **Requirements:** Xcode, iOS device with LiDAR sensor (cannot run on simulator due to ARKit/LiDAR dependency)
 
+**Current Mac note:** This working Mac only has Command Line Tools selected, not full Xcode, so `xcodebuild` is not expected to work here. Use `swiftc -parse`, `plutil -lint`, and `git diff --check` for local validation, then build in Xcode on a machine with full Xcode installed.
+
 **Build:** Open `StrayScanner.xcworkspace` (not `.xcodeproj`) in Xcode, select an iOS device target, and build with `Cmd+B`.
 
 **Run tests:** `Cmd+U` in Xcode, or via the `StrayScannerTests` scheme. The test suite is minimal — currently only tests NPY array creation.

@@ -45,6 +45,7 @@ class VideoEncoder {
     }
 
     func add(frame: VideoEncoderInput, currentFrame: Int) {
+        guard !done else { return }
         previousFrame = currentFrame
         while !videoWriterInput!.isReadyForMoreMediaData {
             print("Sleeping.")
@@ -89,17 +90,30 @@ class VideoEncoder {
     }
 
     private func doneRecording() {
+        guard !done else { return }
+        done = true
         if videoWriter?.status == .failed {
             let error = videoWriter!.error
             print("Something went wrong when writing video. \(error!.localizedDescription)")
             self.status = .error
         } else {
+            guard let writer = videoWriter else {
+                videoWriterInput = nil
+                videoAdapter = nil
+                return
+            }
+            let semaphore = DispatchSemaphore(value: 0)
             videoWriterInput?.markAsFinished()
-            videoWriter?.finishWriting { [weak self] in
+            writer.finishWriting { [weak self] in
+                if writer.status == .failed {
+                    self?.status = .error
+                }
                 self?.videoWriter = nil
                 self?.videoWriterInput = nil
                 self?.videoAdapter = nil
+                semaphore.signal()
             }
+            semaphore.wait()
         }
     }
 

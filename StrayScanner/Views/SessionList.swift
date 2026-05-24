@@ -152,6 +152,7 @@ struct SessionList: View {
     @State private var showingShareSheet = false
     @State private var fullExportURL: URL?
     @State private var isCreatingFullExport = false
+    @State private var fullExportProgress: ShareUtility.FullDataArchiveProgress?
     @State private var exportError: String?
 
     var body: some View {
@@ -259,7 +260,7 @@ struct SessionList: View {
                             } else {
                                 Image(systemName: "archivebox")
                             }
-                            Text(isCreatingFullExport ? "Đang nén..." : "Xuất ZIP toàn bộ")
+                            Text(exportAllButtonTitle)
                                 .fixedSize()
                         }
                         .font(.body)
@@ -351,7 +352,7 @@ struct SessionList: View {
                 }
             }
         }
-    }
+        }
     }
 
     private func prepareResetConfirmation() {
@@ -367,17 +368,24 @@ struct SessionList: View {
 
     private func exportAllData() {
         isCreatingFullExport = true
+        fullExportProgress = nil
         Task {
             do {
-                let url = try await ShareUtility.createFullDataArchive()
+                let url = try await ShareUtility.createFullDataArchive { progress in
+                    DispatchQueue.main.async {
+                        fullExportProgress = progress
+                    }
+                }
                 await MainActor.run {
                     fullExportURL = url
                     isCreatingFullExport = false
+                    fullExportProgress = nil
                     showingShareSheet = true
                 }
             } catch {
                 await MainActor.run {
                     isCreatingFullExport = false
+                    fullExportProgress = nil
                     exportError = error.localizedDescription
                 }
             }
@@ -387,6 +395,14 @@ struct SessionList: View {
     private static func makeResetConfirmationCode() -> String {
         let characters = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
         return String((0..<5).compactMap { _ in characters.randomElement() })
+    }
+
+    private var exportAllButtonTitle: String {
+        guard isCreatingFullExport else { return "Xuất ZIP toàn bộ" }
+        if let progress = fullExportProgress {
+            return "Đang nén \(progress.percent)%"
+        }
+        return "Đang chuẩn bị..."
     }
 }
 

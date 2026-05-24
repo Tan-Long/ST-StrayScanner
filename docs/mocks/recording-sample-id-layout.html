@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recording Sample ID Layout Mock</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #171717;
+      --panel: rgba(0, 0, 0, 0.72);
+      --text: #f8f8f8;
+      --muted: #b7c0c7;
+      --green: #28a745;
+      --yellow: #f6d04d;
+      --blue: #4c8bf5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f3f0ea;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .phone {
+      width: min(390px, 100vw);
+      height: min(844px, 100vh);
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+      border: 1px solid #232323;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .status {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 5;
+      background: rgba(0, 0, 0, 0.26);
+    }
+
+    .preview {
+      position: absolute;
+      inset: 44px 0 212px;
+      background:
+        linear-gradient(140deg, rgba(31, 92, 72, 0.7), rgba(18, 24, 22, 0.95)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 22px);
+      display: grid;
+      place-items: center;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0;
+      font-size: 15px;
+    }
+
+    .control-row {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 177px;
+      height: 34px;
+      display: grid;
+      grid-template-columns: 101px 1fr;
+      align-items: center;
+      gap: 16px;
+      z-index: 4;
+    }
+
+    .fps {
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #191919;
+      color: var(--text);
+      font-family: "Courier New", monospace;
+      font-size: 19px;
+    }
+
+    .timer {
+      color: var(--text);
+      font-family: "Courier New", monospace;
+      font-size: 24px;
+      text-align: right;
+    }
+
+    .sample-bar {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 126px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      border-radius: 12px;
+      background: var(--panel);
+      z-index: 4;
+    }
+
+    .sample-icon {
+      color: var(--text);
+      font-size: 18px;
+      width: 18px;
+      text-align: center;
+    }
+
+    .sample-input {
+      flex: 1;
+      height: 30px;
+      border: 0;
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #fff;
+      color: #111;
+      font-size: 16px;
+      outline: 2px solid transparent;
+    }
+
+    .sample-flag {
+      width: 44px;
+      height: 34px;
+      border: 0;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--yellow);
+      color: #111;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .record {
+      position: absolute;
+      left: 50%;
+      bottom: 74px;
+      width: 90px;
+      height: 90px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      z-index: 4;
+    }
+
+    .record::after {
+      content: "";
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      background: #e53b3b;
+    }
+
+    .record.recording::after {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+    }
+
+    .pause {
+      position: absolute;
+      left: calc(50% + 67px);
+      bottom: 72px;
+      width: 54px;
+      height: 54px;
+      border: 0;
+      border-radius: 999px;
+      background: #191919;
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0;
+      z-index: 4;
+    }
+
+    .home-indicator {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      width: 134px;
+      height: 5px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.86);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Recording screen mock">
+    <div class="status">
+      <span>9:41</span>
+      <span>5G 100%</span>
+    </div>
+
+    <section class="preview">LiDAR / RGB preview</section>
+
+    <section class="control-row" aria-label="Recording controls">
+      <div class="fps">60 fps</div>
+      <div class="timer">00:00:00</div>
+    </section>
+
+    <section class="sample-bar" aria-label="Sample ID input">
+      <div class="sample-icon">#</div>
+      <input class="sample-input" value="M-1.1" aria-label="Sample ID">
+      <button class="sample-flag" aria-label="Flag sample">*</button>
+    </section>
+
+    <div class="record recording" aria-label="Record button"></div>
+    <button class="pause" aria-label="Pause recording">Ⅱ</button>
+    <div class="home-indicator"></div>
+  </main>
+</body>
+</html>

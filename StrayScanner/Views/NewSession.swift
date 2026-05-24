@@ -8,6 +8,8 @@
 
 import SwiftUI
 
+let sampleFlagChangeNotification = Notification.Name("sampleFlagChangeNotification")
+
 struct NavigationConfigurator: UIViewControllerRepresentable {
     var configure: (UINavigationController) -> Void = { _ in }
 
@@ -24,10 +26,12 @@ struct NavigationConfigurator: UIViewControllerRepresentable {
 struct RecordSessionManager: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     let sampleContext: SampleContext?
+    let onFlagChange: (Bool) -> Void
     
     func makeUIViewController(context: Context) -> RecordSessionViewController {
         let viewController = RecordSessionViewController(nibName: "RecordSessionView", bundle: nil)
         viewController.setSampleContext(sampleContext)
+        viewController.setFlagChangeHandler(onFlagChange)
         viewController.setDismissFunction {
             presentationMode.wrappedValue.dismiss()
             viewController.setDismissFunction(Optional.none)
@@ -37,11 +41,13 @@ struct RecordSessionManager: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: RecordSessionViewController, context: Context) {
         uiViewController.setSampleContext(sampleContext)
+        uiViewController.setFlagChangeHandler(onFlagChange)
     }
 }
 
 struct NewSessionView : View {
     @State private var sampleID = SampleContextStore.shared.current?.sampleID ?? ""
+    @State private var isImportantTree = SampleContextStore.shared.current?.isImportant ?? false
     private let latestSampleContext = SampleContextStore.shared.current
 
     private var recordingSampleContext: SampleContext? {
@@ -49,24 +55,30 @@ struct NewSessionView : View {
         guard !trimmedSampleID.isEmpty else { return nil }
         return SampleContext(
             sampleID: trimmedSampleID,
-            isImportant: latestSampleContext?.isImportant ?? false,
+            isImportant: isImportantTree,
             loaiMau: latestSampleContext?.loaiMau ?? "",
             site: latestSampleContext?.site ?? ""
         )
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            RecordSessionManager(sampleContext: recordingSampleContext)
+        ZStack {
+            RecordSessionManager(
+                sampleContext: recordingSampleContext,
+                onFlagChange: { isImportantTree = $0 }
+            )
                 .padding(.vertical, 0.0)
                 .edgesIgnoringSafeArea(.all)
 
-            sampleIDBar
+            VStack {
+                Spacer()
+                sampleIDBar
+                    .padding(.bottom, 140)
+            }
         }
             .padding(.vertical, 0.0)
             .navigationBarTitle("Recording")
             .navigationBarTitleDisplayMode(.inline)
-            .edgesIgnoringSafeArea(.all)
             .background(NavigationConfigurator { nc in
                 nc.navigationBar.barTintColor = UIColor(named: "BackgroundColor")
             })
@@ -82,13 +94,30 @@ struct NewSessionView : View {
                 .disableAutocorrection(true)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .accessibilityIdentifier("newSession.sampleIDField")
+            Button(action: {
+                isImportantTree.toggle()
+                NotificationCenter.default.post(
+                    name: sampleFlagChangeNotification,
+                    object: nil,
+                    userInfo: ["isImportant": isImportantTree]
+                )
+            }) {
+                Text(isImportantTree ? "*" : "☆")
+                    .font(.system(size: 28, weight: .semibold))
+                    .frame(width: 44, height: 34)
+                    .background(isImportantTree ? Color.yellow : Color("DarkColor"))
+                    .foregroundColor(isImportantTree ? .black : Color("LightColor"))
+                    .cornerRadius(10)
+            }
+            .accessibilityLabel("Important tree")
+            .accessibilityValue(isImportantTree ? "Important" : "Normal")
+            .accessibilityIdentifier("newSession.importantButton")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.72))
         .cornerRadius(12)
         .padding(.horizontal, 16)
-        .padding(.top, 8)
     }
 }
 

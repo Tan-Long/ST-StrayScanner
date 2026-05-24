@@ -35,9 +35,18 @@ class RecordButton : UIView {
         self.callback = Optional.some(callback)
     }
 
+    func setRecording(_ recording: Bool) {
+        guard self.recording != recording else { return }
+        if recording {
+            animateToRecording()
+        } else {
+            animateToIdle()
+        }
+        self.recording = recording
+    }
+
     @objc func buttonPressed() {
-        self.animateButton()
-        self.recording = !self.recording
+        setRecording(!self.recording)
         self.callback?(self.recording)
     }
 
@@ -82,16 +91,6 @@ class RecordButton : UIView {
         disk.opacity = 1.0
         disk.transform = CATransform3DIdentity
         self.layer.addSublayer(disk)
-    }
-
-    private func animateButton() {
-        // Called before the flag is flipped.
-        if self.recording {
-            // Finished recording.
-            self.animateToIdle()
-        } else {
-            self.animateToRecording()
-        }
     }
 
     private func animateToRecording() {
