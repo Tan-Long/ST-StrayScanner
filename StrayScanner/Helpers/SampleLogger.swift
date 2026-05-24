@@ -774,7 +774,8 @@ class SampleLogger {
         let isImportant = metadataBool(json["is_important"]) ||
             sampleFlag == "*" ||
             flag == "*" ||
-            directory.lastPathComponent.hasSuffix("*")
+            directory.lastPathComponent.hasSuffix("*") ||
+            directory.lastPathComponent.contains("*_video_")
         let recordedAtText = metadataString(json["recorded_at"])
         let recordedAt = parseISO8601(recordedAtText)
 

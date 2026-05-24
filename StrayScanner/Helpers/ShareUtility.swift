@@ -31,6 +31,16 @@ class ShareUtility {
         let modifiedAt: Date
     }
 
+    private struct ExportItemInfo {
+        let url: URL
+        let exportName: String
+        let exportDate: Date
+
+        var dayFolder: String {
+            ShareUtility.exportDayString(from: exportDate)
+        }
+    }
+
     private struct CentralDirectoryEntry {
         let path: String
         let crc32: UInt32
@@ -49,7 +59,8 @@ class ShareUtility {
         }
         
         let tempDirectory = FileManager.default.temporaryDirectory
-        let archiveURL = tempDirectory.appendingPathComponent(sourceDirectory.lastPathComponent + ".zip")
+        let archiveName = exportFolderName(for: sourceDirectory, fallback: sourceDirectory.lastPathComponent)
+        let archiveURL = tempDirectory.appendingPathComponent(archiveName + ".zip")
         
         // Remove existing archive if it exists
         try? FileManager.default.removeItem(at: archiveURL)
@@ -57,7 +68,15 @@ class ShareUtility {
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    try createZipArchive(sourceDirectory: sourceDirectory, destinationURL: archiveURL)
+                    let sourceFiles = try archiveSourceFiles(
+                        from: [sourceDirectory],
+                        rootFolderName: nil,
+                        groupByDay: false
+                    )
+                    try createStoredZipArchive(
+                        sourceFiles: sourceFiles,
+                        destinationURL: archiveURL
+                    ) { _, _ in }
                     continuation.resume(returning: archiveURL)
                 } catch {
                     continuation.resume(throwing: error)
@@ -89,11 +108,6 @@ class ShareUtility {
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         SampleLogger.shared.prepareStorageForExport()
         let tempDirectory = fileManager.temporaryDirectory
-        let timestamp = exportTimestamp()
-        let packageName = "StrayScanner_export_\(timestamp)"
-        let archiveURL = tempDirectory.appendingPathComponent("\(packageName).zip")
-
-        try? fileManager.removeItem(at: archiveURL)
 
         let exportItems = try fileManager.contentsOfDirectory(
             at: documentsURL,
@@ -109,7 +123,16 @@ class ShareUtility {
             )
         }
 
-        let sourceFiles = try archiveSourceFiles(from: exportItems, rootFolderName: packageName)
+        let exportInfos = exportItems.map(exportItemInfo(from:))
+        let packageName = fullExportPackageName(exportInfos: exportInfos)
+        let archiveURL = tempDirectory.appendingPathComponent("\(packageName).zip")
+        try? fileManager.removeItem(at: archiveURL)
+
+        let sourceFiles = try archiveSourceFiles(
+            from: exportInfos,
+            rootFolderName: packageName,
+            groupByDay: true
+        )
         guard !sourceFiles.isEmpty else {
             throw NSError(
                 domain: "ShareError",
@@ -156,16 +179,57 @@ class ShareUtility {
 
     private static func archiveSourceFiles(
         from exportItems: [URL],
-        rootFolderName: String
+        rootFolderName: String?,
+        groupByDay: Bool
+    ) throws -> [ArchiveSourceFile] {
+        try archiveSourceFiles(
+            from: exportItems.map(exportItemInfo(from:)),
+            rootFolderName: rootFolderName,
+            groupByDay: groupByDay
+        )
+    }
+
+    private static func archiveSourceFiles(
+        from exportInfos: [ExportItemInfo],
+        rootFolderName: String?,
+        groupByDay: Bool
     ) throws -> [ArchiveSourceFile] {
         var sourceFiles: [ArchiveSourceFile] = []
         let fileManager = FileManager.default
-        let sortedItems = exportItems.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let sortedInfos = exportInfos.sorted {
+            if groupByDay, $0.dayFolder != $1.dayFolder {
+                return $0.exportDate < $1.exportDate
+            }
+            return $0.exportName < $1.exportName
+        }
+        var usedExportNamesByGroup: [String: Set<String>] = [:]
 
-        for item in sortedItems {
+        for info in sortedInfos {
+            let item = info.url
             let values = try item.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .fileSizeKey, .contentModificationDateKey])
             if values.isDirectory == true {
+                if groupByDay, item.lastPathComponent == "samples" {
+                    try appendSampleDirectoryFiles(
+                        from: item,
+                        rootFolderName: rootFolderName,
+                        sourceFiles: &sourceFiles
+                    )
+                    continue
+                }
+
                 let basePath = item.standardizedFileURL.path
+                let groupKey = groupByDay ? info.dayFolder : ""
+                var usedNamesForGroup = usedExportNamesByGroup[groupKey] ?? []
+                let exportedFolderName = uniqueExportName(
+                    info.exportName,
+                    usedNames: &usedNamesForGroup
+                )
+                usedExportNamesByGroup[groupKey] = usedNamesForGroup
+                let itemRootPath = archiveRootPath(
+                    rootFolderName: rootFolderName,
+                    dayFolder: groupByDay ? info.dayFolder : nil,
+                    itemName: exportedFolderName
+                )
                 guard let enumerator = fileManager.enumerator(
                     at: item,
                     includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey],
@@ -181,7 +245,7 @@ class ShareUtility {
                     if relativeChildPath.hasPrefix("/") {
                         relativeChildPath.removeFirst()
                     }
-                    let relativePath = rootFolderName + "/" + item.lastPathComponent + "/" + relativeChildPath
+                    let relativePath = itemRootPath + "/" + relativeChildPath
                     sourceFiles.append(ArchiveSourceFile(
                         fileURL: fileURL,
                         relativePath: zipPath(relativePath),
@@ -190,9 +254,14 @@ class ShareUtility {
                     ))
                 }
             } else if values.isRegularFile == true {
+                let itemRootPath = archiveRootPath(
+                    rootFolderName: rootFolderName,
+                    dayFolder: groupByDay ? info.dayFolder : nil,
+                    itemName: item.lastPathComponent
+                )
                 sourceFiles.append(ArchiveSourceFile(
                     fileURL: item,
-                    relativePath: zipPath(rootFolderName + "/" + item.lastPathComponent),
+                    relativePath: zipPath(itemRootPath),
                     size: UInt64(values.fileSize ?? 0),
                     modifiedAt: values.contentModificationDate ?? Date()
                 ))
@@ -202,8 +271,273 @@ class ShareUtility {
         return sourceFiles.sorted { $0.relativePath < $1.relativePath }
     }
 
+    private static func appendSampleDirectoryFiles(
+        from samplesDirectory: URL,
+        rootFolderName: String?,
+        sourceFiles: inout [ArchiveSourceFile]
+    ) throws {
+        let fileManager = FileManager.default
+        let basePath = samplesDirectory.standardizedFileURL.path
+        guard let enumerator = fileManager.enumerator(
+            at: samplesDirectory,
+            includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+
+        let sampleDefaultDate = samplePhotoDates(in: samplesDirectory).max() ?? fallbackDate(for: samplesDirectory)
+        for case let fileURL as URL in enumerator {
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey])
+            guard values.isRegularFile == true else { continue }
+
+            var relativeChildPath = String(fileURL.standardizedFileURL.path.dropFirst(basePath.count))
+            if relativeChildPath.hasPrefix("/") {
+                relativeChildPath.removeFirst()
+            }
+
+            let itemRootPath = archiveRootPath(
+                rootFolderName: rootFolderName,
+                dayFolder: exportDayString(from: sampleFileExportDate(for: fileURL, defaultDate: sampleDefaultDate)),
+                itemName: sampleArchiveFolderName(for: fileURL)
+            )
+            sourceFiles.append(ArchiveSourceFile(
+                fileURL: fileURL,
+                relativePath: zipPath(itemRootPath + "/" + relativeChildPath),
+                size: UInt64(values.fileSize ?? 0),
+                modifiedAt: values.contentModificationDate ?? Date()
+            ))
+        }
+    }
+
+    private static func fullExportPackageName(exportInfos: [ExportItemInfo]) -> String {
+        let dates = exportInfos.flatMap { info -> [Date] in
+            guard info.url.lastPathComponent == "samples" else {
+                return [info.exportDate]
+            }
+            let sampleDates = samplePhotoDates(in: info.url)
+            return sampleDates.isEmpty ? [info.exportDate] : sampleDates
+        }
+        guard let startDate = dates.min(), let endDate = dates.max() else {
+            return "StrayScanner_export_\(exportTimestamp())"
+        }
+
+        let start = exportDayString(from: startDate)
+        let end = exportDayString(from: endDate)
+        if start == end {
+            return "StrayScanner_export_\(start)"
+        }
+        return "StrayScanner_export_\(start)_to_\(end)"
+    }
+
+    private static func exportItemInfo(from item: URL) -> ExportItemInfo {
+        let fileManager = FileManager.default
+        let name = item.lastPathComponent
+        if name == "samples" {
+            return ExportItemInfo(
+                url: item,
+                exportName: name,
+                exportDate: sampleDirectoryExportDate(in: item)
+            )
+        }
+        if fileManager.fileExists(atPath: item.appendingPathComponent("rgb.mp4").path) {
+            return ExportItemInfo(
+                url: item,
+                exportName: exportFolderName(for: item, fallback: name),
+                exportDate: recordingDate(for: item) ?? fallbackDate(for: item)
+            )
+        }
+        return ExportItemInfo(
+            url: item,
+            exportName: name,
+            exportDate: fallbackDate(for: item)
+        )
+    }
+
+    private static func archiveRootPath(
+        rootFolderName: String?,
+        dayFolder: String?,
+        itemName: String
+    ) -> String {
+        zipPath([rootFolderName, dayFolder, itemName].compactMap { $0 }.joined(separator: "/"))
+    }
+
+    private static func exportDayString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "ddMMyyyy"
+        return formatter.string(from: date)
+    }
+
+    private static func recordingDate(for directory: URL) -> Date? {
+        let metadataURL = directory.appendingPathComponent("sample_metadata.json")
+        guard
+            let data = try? Data(contentsOf: metadataURL),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return nil
+        }
+        return recordedDate(from: metadataString(json["recorded_at"]))
+    }
+
+    private static func sampleDirectoryExportDate(in directory: URL) -> Date {
+        samplePhotoDates(in: directory).min() ?? fallbackDate(for: directory)
+    }
+
+    private static func samplePhotoDates(in directory: URL) -> [Date] {
+        let fileManager = FileManager.default
+        guard let enumerator = fileManager.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isRegularFileKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        var dates: [Date] = []
+        for case let fileURL as URL in enumerator {
+            let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard values?.isRegularFile == true else { continue }
+            guard isSampleImageFile(fileURL) else { continue }
+            dates.append(fileExportDate(for: fileURL))
+        }
+        return dates
+    }
+
+    private static func sampleArchiveFolderName(for fileURL: URL) -> String {
+        isSampleImageFile(fileURL) ? "01_sample_photos" : "02_sample_data"
+    }
+
+    private static func isSampleImageFile(_ fileURL: URL) -> Bool {
+        let ext = fileURL.pathExtension.lowercased()
+        return ext == "jpg" || ext == "jpeg"
+    }
+
+    private static func sampleFileExportDate(for fileURL: URL, defaultDate: Date) -> Date {
+        if let timestampDate = timestampDate(fromFilename: fileURL.lastPathComponent) {
+            return timestampDate
+        }
+
+        if isSampleImageFile(fileURL) {
+            return fallbackDate(for: fileURL)
+        }
+        return defaultDate
+    }
+
+    private static func fileExportDate(for fileURL: URL) -> Date {
+        if let timestampDate = timestampDate(fromFilename: fileURL.lastPathComponent) {
+            return timestampDate
+        }
+        return fallbackDate(for: fileURL)
+    }
+
+    private static func timestampDate(fromFilename filename: String) -> Date? {
+        let stem = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
+        let parts = stem.split(separator: "_").map(String.init)
+        guard parts.count >= 2 else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        for index in 0..<(parts.count - 1) {
+            let candidate = "\(parts[index])_\(parts[index + 1])"
+            if let date = formatter.date(from: candidate) {
+                return date
+            }
+        }
+        return nil
+    }
+
+    private static func fallbackDate(for url: URL) -> Date {
+        let values = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+        return values?.creationDate ?? values?.contentModificationDate ?? Date()
+    }
+
     private static func zipPath(_ path: String) -> String {
         path.replacingOccurrences(of: "\\", with: "/")
+    }
+
+    private static func uniqueExportName(_ preferredName: String, usedNames: inout Set<String>) -> String {
+        guard usedNames.contains(preferredName) else {
+            usedNames.insert(preferredName)
+            return preferredName
+        }
+
+        var counter = 2
+        while usedNames.contains("\(preferredName)_\(counter)") {
+            counter += 1
+        }
+        let uniqueName = "\(preferredName)_\(counter)"
+        usedNames.insert(uniqueName)
+        return uniqueName
+    }
+
+    private static func exportFolderName(for directory: URL, fallback: String) -> String {
+        guard fallback != "samples" else { return fallback }
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: directory.appendingPathComponent("rgb.mp4").path) else {
+            return fallback
+        }
+
+        let metadataURL = directory.appendingPathComponent("sample_metadata.json")
+        guard
+            let data = try? Data(contentsOf: metadataURL),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return fallback
+        }
+
+        let sampleID = metadataString(json["sample_id"])
+        guard !sampleID.isEmpty else { return fallback }
+        let isImportant = metadataBool(json["is_important"]) ||
+            metadataString(json["sample_flag"]) == "*" ||
+            metadataString(json["flag"]) == "*"
+        let timestamp = exportTimestamp(fromRecordedAt: metadataString(json["recorded_at"]))
+        let safeSampleID = SampleContextStore.folderSafeSampleID(sampleID)
+        guard !safeSampleID.isEmpty else { return fallback }
+        let flag = isImportant ? "*" : ""
+        return "\(safeSampleID)\(flag)_video_\(timestamp)"
+    }
+
+    private static func metadataString(_ value: Any?) -> String {
+        guard let value = value, !(value is NSNull) else { return "" }
+        if let string = value as? String {
+            return string.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "\(value)".trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func metadataBool(_ value: Any?) -> Bool {
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        if let string = value as? String {
+            return ["true", "yes", "1", "*"].contains(string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+        }
+        return false
+    }
+
+    private static func exportTimestamp(fromRecordedAt recordedAtText: String) -> String {
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "en_US_POSIX")
+        output.dateFormat = "yyyyMMdd_HHmmss"
+
+        if let date = recordedDate(from: recordedAtText) {
+            return output.string(from: date)
+        }
+        return output.string(from: Date())
+    }
+
+    private static func recordedDate(from recordedAtText: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: recordedAtText) {
+            return date
+        }
+        iso.formatOptions = [.withInternetDateTime]
+        if let date = iso.date(from: recordedAtText) {
+            return date
+        }
+        return nil
     }
 
     private static func shouldIncludeInFullExport(_ url: URL) -> Bool {
@@ -410,24 +744,6 @@ class ShareUtility {
         let dosTime = UInt16((hour << 11) | (minute << 5) | (second / 2))
         let dosDate = UInt16(((year - 1980) << 9) | (month << 5) | day)
         return (dosTime, dosDate)
-    }
-    
-    private static func createZipArchive(sourceDirectory: URL, destinationURL: URL) throws {
-        let coordinator = NSFileCoordinator()
-        var coordinatorError: NSError?
-        var copyError: Error?
-
-        coordinator.coordinate(readingItemAt: sourceDirectory, options: [.forUploading], error: &coordinatorError) { zipURL in
-            do {
-                try FileManager.default.copyItem(at: zipURL, to: destinationURL)
-            } catch {
-                copyError = error
-            }
-        }
-
-        if let error = coordinatorError ?? copyError {
-            throw error
-        }
     }
 }
 

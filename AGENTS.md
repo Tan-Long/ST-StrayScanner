@@ -20,7 +20,7 @@ This working Mac has Command Line Tools selected instead of full Xcode, so `xcod
 
 ## Coding Style & Naming Conventions
 
-Use Swift conventions: 4-space indentation, `PascalCase` for types, `camelCase` for properties/functions, and concise `// MARK:` groupings for large files. Prefer existing helpers such as `SampleLogger`, `SampleContextStore`, and encoder classes over new parallel abstractions. Keep generated/export filenames compatible with current patterns, for example `cay_0001_1805_M-1.1*` and sample `.jpg` files under `samples/`.
+Use Swift conventions: 4-space indentation, `PascalCase` for types, `camelCase` for properties/functions, and concise `// MARK:` groupings for large files. Prefer existing helpers such as `SampleLogger`, `SampleContextStore`, and encoder classes over new parallel abstractions. Keep generated/export filenames compatible with current patterns, for example `M-1.1*_video_20260524_121530`, day folders such as `24052026`, and sample `.jpg` files under `samples/`.
 
 ## Testing Guidelines
 
@@ -32,4 +32,4 @@ Recent commits use short imperative subjects such as `Add editable video sample 
 
 ## Data Safety Notes
 
-Sample photos and logs are user data. Avoid destructive changes without confirmation. Soft-delete sample photos into `samples/recently_deleted` when possible, keep CSV/XLSX export behavior consistent, and do not alter unrelated generated files such as `lichen-server/__pycache__/`.
+Sample photos and logs are user data. Avoid destructive changes without confirmation. Soft-delete sample photos into `samples/recently_deleted` when possible, keep ZIP exports grouped by day with photos before CSV/XLSX logs, and do not alter unrelated generated files such as `lichen-server/__pycache__/`.
