@@ -28,7 +28,6 @@ class SamplePhotoViewController: UIViewController {
     private let khongDiaYBtn   = UIButton(type: .system)
     private let siteField      = UITextField()
     private let siteStatusLabel = UILabel()
-    private let huongPicker    = UIPickerView()
     private let upslopeBtn     = UIButton(type: .system)
     private let downslopeBtn   = UIButton(type: .system)
     private let importantButton = UIButton(type: .system)
@@ -44,6 +43,7 @@ class SamplePhotoViewController: UIViewController {
     private var overlayTimer: Timer?
     private var simulatorPreviewBuilt = false
     private let huongManhXamOptions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    private var currentHuongManhXamCardinal = "N"
     private let lastSiteDefaultsKey = "sample_last_gps_site"
     private let noGPSFallbackSite = "Không có GPS"
     var dismissFunction: (() -> Void)?
@@ -242,19 +242,30 @@ class SamplePhotoViewController: UIViewController {
             stack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
         ])
 
-        // Flag
-        stack.addArrangedSubview(fieldLabel("Flag"))
+        // Sample ID + flag
+        stack.addArrangedSubview(fieldLabel("Sample ID"))
+        sampleIDField.borderStyle = .roundedRect
+        sampleIDField.clearButtonMode = .whileEditing
+        sampleIDField.autocorrectionType = .no
+
         importantButton.setTitle("☆", for: .normal)
         importantButton.titleLabel?.font = .systemFont(ofSize: 30, weight: .semibold)
         importantButton.layer.cornerRadius = 8
         importantButton.layer.masksToBounds = true
         importantButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        importantButton.widthAnchor.constraint(equalToConstant: 54).isActive = true
         importantButton.addTarget(self, action: #selector(importantTapped), for: .touchUpInside)
-        stack.addArrangedSubview(importantButton)
+
+        let sampleIDRow = UIStackView(arrangedSubviews: [sampleIDField, importantButton])
+        sampleIDRow.axis = .horizontal
+        sampleIDRow.spacing = 8
+        sampleIDRow.alignment = .fill
+        sampleIDRow.distribution = .fill
+        stack.addArrangedSubview(sampleIDRow)
         refreshImportantButton()
 
-        // Loại mẫu
-        stack.addArrangedSubview(fieldLabel("Loại mẫu"))
+        // Loại mẫu / Hướng lấy mẫu
+        stack.addArrangedSubview(fieldLabel("Loại mẫu / Hướng lấy mẫu"))
         let loaiMauRow = UIStackView(arrangedSubviews: [diaYBtn, khongDiaYBtn])
         loaiMauRow.axis = .horizontal
         loaiMauRow.spacing = 8
@@ -263,6 +274,14 @@ class SamplePhotoViewController: UIViewController {
         styleChoiceBtn(khongDiaYBtn, "Không địa y")
         stack.addArrangedSubview(loaiMauRow)
         refreshLoaiMauBtns()
+
+        let huongRow = UIStackView(arrangedSubviews: [upslopeBtn, downslopeBtn])
+        huongRow.axis = .horizontal
+        huongRow.spacing = 8
+        huongRow.distribution = .fillEqually
+        styleHuongBtn(upslopeBtn,  "Upslope")
+        styleHuongBtn(downslopeBtn,"Downslope")
+        stack.addArrangedSubview(huongRow)
 
         // Site
         stack.addArrangedSubview(fieldLabel("Site (GPS)"))
@@ -276,32 +295,6 @@ class SamplePhotoViewController: UIViewController {
         siteStatusLabel.numberOfLines = 0
         siteStatusLabel.text = "Đang lấy GPS..."
         stack.addArrangedSubview(siteStatusLabel)
-
-        // Hướng camera / mảnh xăm
-        stack.addArrangedSubview(fieldLabel("Hướng camera / Hướng mảnh xăm"))
-        huongPicker.dataSource = self
-        huongPicker.delegate   = self
-        huongPicker.isUserInteractionEnabled = false
-        huongPicker.alpha = 0.78
-        huongPicker.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        stack.addArrangedSubview(huongPicker)
-
-        // Hướng lấy mẫu
-        stack.addArrangedSubview(fieldLabel("Hướng lấy mẫu"))
-        let huongRow = UIStackView(arrangedSubviews: [upslopeBtn, downslopeBtn])
-        huongRow.axis = .horizontal
-        huongRow.spacing = 8
-        huongRow.distribution = .fillEqually
-        styleHuongBtn(upslopeBtn,  "Upslope")
-        styleHuongBtn(downslopeBtn,"Downslope")
-        stack.addArrangedSubview(huongRow)
-
-        // Sample ID
-        stack.addArrangedSubview(fieldLabel("Sample ID"))
-        sampleIDField.borderStyle = .roundedRect
-        sampleIDField.clearButtonMode = .whileEditing
-        sampleIDField.autocorrectionType = .no
-        stack.addArrangedSubview(sampleIDField)
     }
 
     private func buildCaptureButton() {
@@ -537,9 +530,7 @@ class SamplePhotoViewController: UIViewController {
     private func syncRealtimeHuongManhXam(heading: HeadingInfo?) {
         guard let heading = heading else { return }
         let outward = outwardFacingInfo(from: heading)
-        if let row = huongManhXamOptions.firstIndex(of: outward.cardinal) {
-            huongPicker.selectRow(row, inComponent: 0, animated: true)
-        }
+        currentHuongManhXamCardinal = outward.cardinal
     }
 
     private func normalizeDegrees(_ degrees: Double) -> Double {
@@ -554,7 +545,7 @@ class SamplePhotoViewController: UIViewController {
     }
 
     private func selectedHuongManhXamCardinal() -> String {
-        huongManhXamOptions[huongPicker.selectedRow(inComponent: 0)]
+        currentHuongManhXamCardinal
     }
 
     private func selectedCameraCardinal(from heading: HeadingInfo?) -> String {
@@ -724,7 +715,11 @@ class SamplePhotoViewController: UIViewController {
             latitude:      snapshot.location?.coordinate.latitude,
             longitude:     snapshot.location?.coordinate.longitude,
             gpsAccuracy:   snapshot.location.map { max($0.horizontalAccuracy, 0) },
-            location:      snapshot.place,
+            location:      sampleLogLocationText(
+                place: snapshot.place,
+                location: snapshot.location,
+                site: snapshot.site
+            ),
             site:          snapshot.site,
             huongCameraDegrees: snapshot.heading?.degrees,
             huongCamera:   snapshot.huongCamera,
@@ -759,6 +754,28 @@ class SamplePhotoViewController: UIViewController {
         let flagSuffix = snapshot.isImportant ? "*" : ""
         let huong = SampleContextStore.folderSafeSampleID(snapshot.huongLayMau)
         return "\(sampleID)\(flagSuffix)_\(huong)_\(timestamp).jpg"
+    }
+
+    private func sampleLogLocationText(place: String, location: CLLocation?, site: String) -> String {
+        let trimmedPlace = place.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedPlace.isEmpty {
+            return trimmedPlace
+        }
+
+        if let location = location {
+            return String(
+                format: "Có GPS, chưa lấy được tên địa điểm: %.6f, %.6f",
+                location.coordinate.latitude,
+                location.coordinate.longitude
+            )
+        }
+
+        let trimmedSite = site.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSite.isEmpty && trimmedSite != noGPSFallbackSite {
+            return "Không có GPS - dùng Site: \(trimmedSite)"
+        }
+
+        return noGPSFallbackSite
     }
 
     private func simulatorMockImageData(snapshot: SampleCaptureSnapshot) -> Data {
@@ -1040,19 +1057,5 @@ extension SamplePhotoViewController: AVCapturePhotoCaptureDelegate {
                 self?.saveRecord(imageData: data, snapshot: snapshot)
             }
         }
-    }
-}
-
-// MARK: - UIPickerView
-
-extension SamplePhotoViewController: UIPickerViewDataSource, UIPickerViewDelegate {
-    func numberOfComponents(in pickerView: UIPickerView) -> Int { 1 }
-
-    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        huongManhXamOptions.count
-    }
-
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        huongManhXamOptions[row]
     }
 }

@@ -278,15 +278,13 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
 
     @discardableResult
     private func saveRecording(_ started: Date, _ encoder: DatasetEncoder) -> Bool {
-        let sessionCount = countSessions()
-        
         let duration = Date().timeIntervalSince(started)
         let entity = NSEntityDescription.entity(forEntityName: "Recording", in: self.dataContext)!
         let recording: Recording = Recording(entity: entity, insertInto: self.dataContext)
         recording.setValue(encoder.id, forKey: "id")
         recording.setValue(duration, forKey: "duration")
         recording.setValue(started, forKey: "createdAt")
-        recording.setValue("Recording \(sessionCount)", forKey: "name")
+        recording.setValue(encoder.rgbFilePath.deletingLastPathComponent().lastPathComponent, forKey: "name")
         recording.setValue(encoder.rgbFilePath.relativeString, forKey: "rgbFilePath")
         recording.setValue(encoder.depthFilePath.relativeString, forKey: "depthFilePath")
         do {
@@ -492,15 +490,4 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         self.present(alert, animated: true)
     }
     
-    private func countSessions() -> Int {
-        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return 0 }
-        let request = NSFetchRequest<NSManagedObject>(entityName: "Recording")
-        do {
-            let fetched: [NSManagedObject] = try appDelegate.persistentContainer.viewContext.fetch(request)
-            return fetched.count
-        } catch let error {
-            print("Could not fetch sessions for counting. \(error.localizedDescription)")
-        }
-        return 0
-    }
 }

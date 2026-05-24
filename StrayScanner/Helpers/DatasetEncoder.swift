@@ -496,25 +496,20 @@ class DatasetEncoder {
 
     static private func createDirectory(sampleID: String?, isImportant: Bool) -> URL {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let day = datasetDayString()
-        var datasetNumber = nextDatasetNumber(in: url)
-        var directoryName = datasetFolderName(
-            number: datasetNumber,
-            day: day,
+        let timestamp = datasetTimestampString()
+        let baseDirectoryName = datasetFolderName(
+            timestamp: timestamp,
             sampleID: sampleID,
             isImportant: isImportant
         )
+        var directoryName = baseDirectoryName
         var directory = URL(fileURLWithPath: directoryName, relativeTo: url)
+        var duplicateCounter = 2
 
         while FileManager.default.fileExists(atPath: directory.path) {
-            datasetNumber += 1
-            directoryName = datasetFolderName(
-                number: datasetNumber,
-                day: day,
-                sampleID: sampleID,
-                isImportant: isImportant
-            )
+            directoryName = "\(baseDirectoryName)_\(duplicateCounter)"
             directory = URL(fileURLWithPath: directoryName, relativeTo: url)
+            duplicateCounter += 1
         }
 
         do {
@@ -525,39 +520,22 @@ class DatasetEncoder {
         return directory
     }
 
-    static private func datasetFolderName(number: Int, day: String, sampleID: String?, isImportant: Bool) -> String {
-        let sampleSuffix = sampleID.map { "_\(SampleContextStore.folderSafeSampleID($0))" } ?? ""
-        let suffix = isImportant ? "*" : ""
-        return String(format: "cay_%04d_%@%@%@", number, day, sampleSuffix, suffix)
+    static private func datasetFolderName(timestamp: String, sampleID: String?, isImportant: Bool) -> String {
+        let safeSampleID = sampleID
+            .map { SampleContextStore.folderSafeSampleID($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let flag = isImportant ? "*" : ""
+
+        if let safeSampleID = safeSampleID {
+            return "\(safeSampleID)\(flag)_video_\(timestamp)"
+        }
+        return "video_\(timestamp)\(flag)"
     }
 
-    static private func datasetDayString(date: Date = Date()) -> String {
+    static private func datasetTimestampString(date: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "ddMM"
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
         return formatter.string(from: date)
-    }
-
-    static private func nextDatasetNumber(in documentsDirectory: URL) -> Int {
-        let existingFolders = (try? FileManager.default.contentsOfDirectory(
-            at: documentsDirectory,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        )) ?? []
-
-        let maxNumber = existingFolders
-            .map { datasetNumber(fromFolderName: $0.lastPathComponent) }
-            .compactMap { $0 }
-            .max() ?? 0
-
-        return maxNumber + 1
-    }
-
-    static private func datasetNumber(fromFolderName folderName: String) -> Int? {
-        let parts = folderName.split(separator: "_", omittingEmptySubsequences: false)
-        guard parts.count >= 3, parts[0] == "cay" else {
-            return nil
-        }
-        return Int(parts[1])
     }
 }
