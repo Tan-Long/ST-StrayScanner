@@ -41,7 +41,9 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
   - Heading degree va huong cardinal
   - Dia diem reverse-geocode
 - File data bay gio bat dau bang cot `File anh`, nen co the map dong data voi anh ma khong can soi lai noi dung tren anh.
-- Man hinh chinh co nut `Quan ly anh mau` de xem tung anh da chup va xoa tung anh; khi xoa, app xoa ca file `.jpg` va dong data tuong ung trong `samples_log.csv` / `samples_log.xlsx`.
+- Man hinh chinh co nut `Quan ly anh mau` de xem tung anh da chup, xoa mem vao `samples/recently_deleted`, khoi phuc anh da xoa gan day, hoac xoa vinh vien. Khi xoa mem, dong data duoc cat khoi `samples_log.csv` / `samples_log.xlsx` va luu trong `recently_deleted/deleted_samples_log.csv` de co the khoi phuc.
+- Trong `Quan ly anh mau`, nut `LiDAR` cho phep chon folder data quay co `sample_metadata.json` va `rgb.mp4`, keo qua cac frame video, roi tao lai anh mau tu frame dang chon. Anh khoi phuc tu LiDAR duoc ghi overlay/metadata `Recovered from LiDAR`, them vao log mau, va backup vao Photos neu app co quyen.
+- Khi chup anh mau tren may that, app se xin quyen them anh vao Photos va luu them mot ban backup trong Photos cua iPhone.
 - File data ghi cac cot:
   - File anh
   - Sample-ID

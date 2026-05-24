@@ -29,6 +29,11 @@ class MetalView : UIView {
 }
 
 class RecordSessionViewController : UIViewController, ARSessionDelegate {
+    private struct FinishedRecording {
+        let started: Date
+        let encoder: DatasetEncoder
+    }
+
     private var unsupported: Bool = false
     private var arConfiguration: ARWorldTrackingConfiguration?
     private let session = ARSession()
@@ -43,16 +48,26 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
     private let imuOperationQueue = OperationQueue()
     private var chosenFpsSetting: Int = 0
     private var isImportantTree: Bool = false
-    private let importantButton = UIButton(type: .system)
+    private var flagChangeHandler: ((Bool) -> Void)?
+    private let pauseButton = UIButton(type: .system)
     @IBOutlet private var rgbView: MetalView!
     @IBOutlet private var depthView: MetalView!
     @IBOutlet private var recordButton: RecordButton!
     @IBOutlet private var timeLabel: UILabel!
     @IBOutlet weak var fpsButton: UIButton!
     var dismissFunction: Optional<() -> Void> = Optional.none
+
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: sampleFlagChangeNotification, object: nil)
+    }
     
     func setDismissFunction(_ fn: Optional<() -> Void>) {
         self.dismissFunction = fn
+    }
+
+    func setFlagChangeHandler(_ handler: @escaping (Bool) -> Void) {
+        flagChangeHandler = handler
+        handler(isImportantTree)
     }
 
     func setSampleContext(_ context: SampleContext?) {
@@ -63,7 +78,7 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
             hasAppliedInitialSampleContext = true
         }
         if isViewLoaded {
-            updateImportantButton()
+            flagChangeHandler?(isImportantTree)
         }
     }
 
@@ -82,7 +97,8 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         rgbView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(viewTapped)))
         
         setViewProperties()
-        configureImportantButton()
+        configurePauseButton()
+        observeSampleFlagChanges()
         setAccessibilityIdentifiers()
         session.delegate = self
 
@@ -169,7 +185,9 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
             return
         }
         if recording && self.startedRecording == nil {
-            startRecording()
+            if !startRecording() {
+                recordButton.setRecording(false)
+            }
         } else if self.startedRecording != nil && !recording {
             stopRecording()
         } else {
@@ -177,7 +195,12 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         }
     }
 
-    private func startRecording() {
+    @discardableResult
+    private func startRecording() -> Bool {
+        guard let arConfiguration = arConfiguration else {
+            showUnsupportedAlert()
+            return false
+        }
         self.startedRecording = Date()
         updateTime()
         updateLabelTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
@@ -186,68 +209,95 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         // Start location/motion before DatasetEncoder so writeGPSAnchor() sees a
         // fresh location fix rather than a stale or nil value.
         LocationMetadataManager.shared.start()
-        importantButton.isEnabled = false
         let sampleContext = sampleContextForRecording()
         datasetEncoder = DatasetEncoder(
-            arConfiguration: arConfiguration!,
+            arConfiguration: arConfiguration,
             fpsDivider: FpsDividers[chosenFpsSetting],
             isImportant: isImportantTree,
             sampleContext: sampleContext
         )
+        updateRecordingControls(isRecording: true)
         startRawIMU()
+        return true
     }
 
     private func stopRecording() {
+        guard let finished = finishActiveRecording(resetRecordButton: false) else { return }
+        switch finished.encoder.status {
+            case .allGood:
+                if saveRecording(finished.started, finished.encoder) {
+                    self.dismissFunction?()
+                }
+            case .videoEncodingError:
+                showError()
+            case .directoryCreationError:
+                showError()
+        }
+    }
+
+    @objc private func pauseButtonTapped() {
+        guard let finished = finishActiveRecording(resetRecordButton: true) else { return }
+        switch finished.encoder.status {
+            case .allGood:
+                showPausedRecordingActions(finished)
+            case .videoEncodingError:
+                showError()
+            case .directoryCreationError:
+                showError()
+        }
+    }
+
+    private func finishActiveRecording(resetRecordButton: Bool) -> FinishedRecording? {
         guard let started = self.startedRecording else {
             print("Hasn't started recording. Something is wrong.")
-            return
+            return nil
         }
+        guard let encoder = datasetEncoder else {
+            print("No dataset encoder. Something is wrong.")
+            startedRecording = nil
+            updateRecordingControls(isRecording: false)
+            if resetRecordButton {
+                recordButton.setRecording(false)
+            }
+            return nil
+        }
+
         startedRecording = nil
         updateLabelTimer?.invalidate()
         updateLabelTimer = nil
-        // Stop IMU updates
         stopRawIMU()
         LocationMetadataManager.shared.stop()
-        datasetEncoder?.wrapUp()
-        importantButton.isEnabled = true
-        if let encoder = datasetEncoder {
-            switch encoder.status {
-                case .allGood:
-                    saveRecording(started, encoder)
-                case .videoEncodingError:
-                    showError()
-                case .directoryCreationError:
-                    showError()
-            }
-        } else {
-            print("No dataset encoder. Something is wrong.")
+        encoder.wrapUp()
+        datasetEncoder = nil
+        updateRecordingControls(isRecording: false)
+        if resetRecordButton {
+            recordButton.setRecording(false)
         }
-        self.dismissFunction?()
+        return FinishedRecording(started: started, encoder: encoder)
     }
 
-    @objc private func importantButtonTapped() {
-        guard startedRecording == nil else { return }
-        isImportantTree.toggle()
-        updateImportantButton()
-    }
-
-    private func saveRecording(_ started: Date, _ encoder: DatasetEncoder) {
+    @discardableResult
+    private func saveRecording(_ started: Date, _ encoder: DatasetEncoder) -> Bool {
         let sessionCount = countSessions()
         
         let duration = Date().timeIntervalSince(started)
         let entity = NSEntityDescription.entity(forEntityName: "Recording", in: self.dataContext)!
         let recording: Recording = Recording(entity: entity, insertInto: self.dataContext)
-        recording.setValue(datasetEncoder!.id, forKey: "id")
+        recording.setValue(encoder.id, forKey: "id")
         recording.setValue(duration, forKey: "duration")
         recording.setValue(started, forKey: "createdAt")
         recording.setValue("Recording \(sessionCount)", forKey: "name")
-        recording.setValue(datasetEncoder!.rgbFilePath.relativeString, forKey: "rgbFilePath")
-        recording.setValue(datasetEncoder!.depthFilePath.relativeString, forKey: "depthFilePath")
+        recording.setValue(encoder.rgbFilePath.relativeString, forKey: "rgbFilePath")
+        recording.setValue(encoder.depthFilePath.relativeString, forKey: "depthFilePath")
         do {
             try self.dataContext.save()
             NotificationCenter.default.post(name: NSNotification.Name("sessionsChanged"), object: nil)
+            return true
         } catch let error as NSError {
             print("Could not save recording. \(error), \(error.userInfo)")
+            self.dataContext.delete(recording)
+            showSaveError()
+            return false
         }
     }
 
@@ -259,6 +309,59 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
             self.dismiss(animated: true, completion: nil)
         }))
         self.present(controller, animated: true, completion: nil)
+    }
+
+    private func showSaveError() {
+        let controller = UIAlertController(
+            title: "Không lưu được recording",
+            message: "Đoạn quay đã dừng nhưng app không ghi được vào danh sách recording.",
+            preferredStyle: .alert
+        )
+        controller.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(controller, animated: true)
+    }
+
+    private func showDeleteError(_ error: Error) {
+        let controller = UIAlertController(
+            title: "Không xoá được đoạn quay",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        controller.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(controller, animated: true)
+    }
+
+    private func showPausedRecordingActions(_ finished: FinishedRecording) {
+        let controller = UIAlertController(
+            title: "Đã pause quay",
+            message: "Đoạn vừa quay đã được dừng hẳn. Bạn muốn xoá đoạn này hay lưu lại rồi quay tiếp?",
+            preferredStyle: .alert
+        )
+        controller.addAction(UIAlertAction(title: "Xoá đoạn này", style: .destructive) { [weak self] _ in
+            self?.deleteRecordingFiles(for: finished.encoder)
+        })
+        controller.addAction(UIAlertAction(title: "Lưu & tiếp tục quay", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            guard self.saveRecording(finished.started, finished.encoder) else { return }
+            if self.startRecording() {
+                self.recordButton.setRecording(true)
+            }
+        })
+        self.present(controller, animated: true)
+    }
+
+    private func deleteRecordingFiles(for encoder: DatasetEncoder) {
+        let directory = encoder.rgbFilePath.deletingLastPathComponent()
+        guard FileManager.default.fileExists(atPath: directory.path) else {
+            timeLabel.text = "00:00:00"
+            return
+        }
+        do {
+            try FileManager.default.removeItem(at: directory)
+            timeLabel.text = "00:00:00"
+        } catch {
+            showDeleteError(error)
+        }
     }
 
     private func updateTime() {
@@ -305,29 +408,47 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         self.view.backgroundColor = UIColor(named: "BackgroundColor")
     }
 
-    private func configureImportantButton() {
-        importantButton.translatesAutoresizingMaskIntoConstraints = false
-        importantButton.titleLabel?.font = UIFont.systemFont(ofSize: 30, weight: .semibold)
-        importantButton.layer.cornerRadius = 12.0
-        importantButton.layer.masksToBounds = true
-        importantButton.addTarget(self, action: #selector(importantButtonTapped), for: .touchUpInside)
-        view.addSubview(importantButton)
+    private func configurePauseButton() {
+        pauseButton.translatesAutoresizingMaskIntoConstraints = false
+        pauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
+        pauseButton.tintColor = UIColor(named: "LightColor")
+        pauseButton.backgroundColor = UIColor(named: "DarkColor")
+        pauseButton.layer.cornerRadius = 27
+        pauseButton.layer.masksToBounds = true
+        pauseButton.isHidden = true
+        pauseButton.isEnabled = false
+        pauseButton.addTarget(self, action: #selector(pauseButtonTapped), for: .touchUpInside)
+        view.addSubview(pauseButton)
 
         NSLayoutConstraint.activate([
-            importantButton.centerYAnchor.constraint(equalTo: fpsButton.centerYAnchor),
-            importantButton.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
-            importantButton.widthAnchor.constraint(equalToConstant: 54),
-            importantButton.heightAnchor.constraint(equalToConstant: 34)
+            pauseButton.leadingAnchor.constraint(equalTo: recordButton.trailingAnchor, constant: 22),
+            pauseButton.centerYAnchor.constraint(equalTo: recordButton.centerYAnchor, constant: 20),
+            pauseButton.widthAnchor.constraint(equalToConstant: 54),
+            pauseButton.heightAnchor.constraint(equalToConstant: 54)
         ])
-
-        updateImportantButton()
     }
 
-    private func updateImportantButton() {
-        importantButton.setTitle(isImportantTree ? "*" : "☆", for: .normal)
-        importantButton.backgroundColor = isImportantTree ? UIColor.systemYellow : UIColor(named: "DarkColor")
-        importantButton.setTitleColor(isImportantTree ? UIColor.black : UIColor(named: "LightColor"), for: .normal)
-        importantButton.accessibilityValue = isImportantTree ? "Important" : "Normal"
+    private func updateRecordingControls(isRecording: Bool) {
+        pauseButton.isHidden = !isRecording
+        pauseButton.isEnabled = isRecording
+        recordButton.accessibilityLabel = isRecording ? "Stop recording" : "Record"
+        recordButton.accessibilityValue = isRecording ? "Recording" : "Idle"
+    }
+
+    private func observeSampleFlagChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sampleFlagChanged(_:)),
+            name: sampleFlagChangeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func sampleFlagChanged(_ notification: Notification) {
+        guard startedRecording == nil else { return }
+        guard let isImportant = notification.userInfo?["isImportant"] as? Bool else { return }
+        isImportantTree = isImportant
+        flagChangeHandler?(isImportantTree)
     }
 
     private func sampleContextForRecording() -> SampleContext? {
@@ -350,11 +471,11 @@ class RecordSessionViewController : UIViewController, ARSessionDelegate {
         recordButton.accessibilityIdentifier = "recordSession.recordButton"
         recordButton.accessibilityLabel = "Record"
         recordButton.accessibilityTraits = [.button]
+        pauseButton.accessibilityIdentifier = "recordSession.pauseButton"
+        pauseButton.accessibilityLabel = "Pause recording"
+        pauseButton.accessibilityTraits = [.button]
         timeLabel.accessibilityIdentifier = "recordSession.timeLabel"
         fpsButton.accessibilityIdentifier = "recordSession.fpsButton"
-        importantButton.accessibilityIdentifier = "recordSession.importantButton"
-        importantButton.accessibilityLabel = "Important tree"
-        importantButton.accessibilityTraits = [.button]
     }
     
     private func updateFpsSetting() {

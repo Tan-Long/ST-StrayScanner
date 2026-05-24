@@ -748,6 +748,7 @@ class SamplePhotoViewController: UIViewController {
         )
 
         DispatchQueue.main.async { [weak self] in
+            self?.backupSamplePhotoToLibrary(imageData: annotatedImageData, filename: filename)
             self?.showHUD()
             self?.advanceSampleID()
         }
@@ -1015,6 +1016,10 @@ class SamplePhotoViewController: UIViewController {
         UIView.animate(withDuration: 0.4, delay: 1.5) { [weak self] in
             self?.hudLabel.alpha = 0
         }
+    }
+
+    private func backupSamplePhotoToLibrary(imageData: Data, filename: String) {
+        SampleLogger.shared.backupSamplePhotoToLibrary(imageData: imageData, filename: filename)
     }
 }
 
