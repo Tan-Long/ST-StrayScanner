@@ -7,6 +7,7 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - Anh mau `.jpg` da ghi thong tin len anh.
 - `samples_log.csv` voi moi anh la mot dong data.
 - `samples_log.xlsx`, hien dang ghi dang tab-separated text voi duoi `.xlsx` de Excel/Numbers import du lieu.
+- Khi xuat ZIP toan bo, app tach data theo folder ngay `ddMMyyyy`: video trong `01_videos`, anh mau trong `02_sample_photos`, va log rieng cua ngay do trong `03_sample_logs` (vi du `samples_log_24052026.csv` / `.xlsx`).
 
 ## Da thay doi
 
@@ -43,6 +44,7 @@ Khi cam dien thoai vao Mac, co the keo truc tiep thu muc `samples` sang may. Thu
 - File data bay gio bat dau bang cot `File anh`, nen co the map dong data voi anh ma khong can soi lai noi dung tren anh.
 - Man hinh chinh co nut `Quan ly anh mau` de xem tung anh da chup, xoa mem vao `samples/recently_deleted`, khoi phuc anh da xoa gan day, hoac xoa vinh vien. Khi xoa mem, dong data duoc cat khoi `samples_log.csv` / `samples_log.xlsx` va luu trong `recently_deleted/deleted_samples_log.csv` de co the khoi phuc.
 - Trong `Quan ly anh mau`, nut `LiDAR` cho phep chon folder data quay co `sample_metadata.json` va `rgb.mp4`, keo qua cac frame video, roi tao lai anh mau tu frame dang chon. Anh khoi phuc tu LiDAR duoc ghi overlay/metadata `Recovered from LiDAR`, them vao log mau, va backup vao Photos neu app co quyen.
+- Khi xuat ZIP toan bo, moi folder ngay gom rieng `01_videos`, `02_sample_photos`, `03_sample_logs`; file `samples_log.csv` tong trong app duoc cat thanh cac log theo ngay dua tren timestamp cua `File anh` / `Ngay lay`.
 - Khi chup anh mau tren may that, app se xin quyen them anh vao Photos va luu them mot ban backup trong Photos cua iPhone.
 - File data ghi cac cot:
   - File anh
