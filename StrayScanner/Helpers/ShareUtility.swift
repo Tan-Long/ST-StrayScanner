@@ -31,6 +31,11 @@ class ShareUtility {
         let modifiedAt: Date
     }
 
+    private struct SampleLogRow {
+        let text: String
+        let date: Date
+    }
+
     private struct ExportItemInfo {
         let url: URL
         let exportName: String
@@ -49,6 +54,14 @@ class ShareUtility {
         let localHeaderOffset: UInt64
         let modifiedAt: Date
     }
+
+    private static let utf8BOM = Data([0xEF, 0xBB, 0xBF])
+    private static let sampleLogCSVHeader =
+        "File ảnh,Sample-ID,Flag,Loại mẫu,Ngày lấy," +
+        "Lat,Long,GPS_accuracy_m,Altitude_m," +
+        "Hướng camera degree,Hướng camera cardinal," +
+        "Hướng mảnh xăm degree,Hướng mảnh xăm cardinal," +
+        "Location,Site,Hướng lấy mẫu\n"
     
     /// Creates a shareable ZIP archive from a recording's dataset
     /// - Parameter recording: The recording to create a ZIP archive for
@@ -108,6 +121,11 @@ class ShareUtility {
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         SampleLogger.shared.prepareStorageForExport()
         let tempDirectory = fileManager.temporaryDirectory
+        let generatedDirectory = tempDirectory.appendingPathComponent(
+            "StrayScanner_export_generated_\(UUID().uuidString)",
+            isDirectory: true
+        )
+        defer { try? fileManager.removeItem(at: generatedDirectory) }
 
         let exportItems = try fileManager.contentsOfDirectory(
             at: documentsURL,
@@ -131,7 +149,8 @@ class ShareUtility {
         let sourceFiles = try archiveSourceFiles(
             from: exportInfos,
             rootFolderName: packageName,
-            groupByDay: true
+            groupByDay: true,
+            generatedDirectory: generatedDirectory
         )
         guard !sourceFiles.isEmpty else {
             throw NSError(
@@ -180,19 +199,22 @@ class ShareUtility {
     private static func archiveSourceFiles(
         from exportItems: [URL],
         rootFolderName: String?,
-        groupByDay: Bool
+        groupByDay: Bool,
+        generatedDirectory: URL? = nil
     ) throws -> [ArchiveSourceFile] {
         try archiveSourceFiles(
             from: exportItems.map(exportItemInfo(from:)),
             rootFolderName: rootFolderName,
-            groupByDay: groupByDay
+            groupByDay: groupByDay,
+            generatedDirectory: generatedDirectory
         )
     }
 
     private static func archiveSourceFiles(
         from exportInfos: [ExportItemInfo],
         rootFolderName: String?,
-        groupByDay: Bool
+        groupByDay: Bool,
+        generatedDirectory: URL? = nil
     ) throws -> [ArchiveSourceFile] {
         var sourceFiles: [ArchiveSourceFile] = []
         let fileManager = FileManager.default
@@ -212,6 +234,7 @@ class ShareUtility {
                     try appendSampleDirectoryFiles(
                         from: item,
                         rootFolderName: rootFolderName,
+                        generatedDirectory: generatedDirectory,
                         sourceFiles: &sourceFiles
                     )
                     continue
@@ -228,7 +251,7 @@ class ShareUtility {
                 let itemRootPath = archiveRootPath(
                     rootFolderName: rootFolderName,
                     dayFolder: groupByDay ? info.dayFolder : nil,
-                    itemName: exportedFolderName
+                    itemName: groupByDay ? "01_videos/\(exportedFolderName)" : exportedFolderName
                 )
                 guard let enumerator = fileManager.enumerator(
                     at: item,
@@ -274,6 +297,7 @@ class ShareUtility {
     private static func appendSampleDirectoryFiles(
         from samplesDirectory: URL,
         rootFolderName: String?,
+        generatedDirectory: URL?,
         sourceFiles: inout [ArchiveSourceFile]
     ) throws {
         let fileManager = FileManager.default
@@ -290,6 +314,7 @@ class ShareUtility {
         for case let fileURL as URL in enumerator {
             let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey])
             guard values.isRegularFile == true else { continue }
+            guard !isCurrentSampleLogFile(fileURL) else { continue }
 
             var relativeChildPath = String(fileURL.standardizedFileURL.path.dropFirst(basePath.count))
             if relativeChildPath.hasPrefix("/") {
@@ -308,6 +333,129 @@ class ShareUtility {
                 modifiedAt: values.contentModificationDate ?? Date()
             ))
         }
+
+        if let generatedDirectory = generatedDirectory {
+            try appendDailySampleLogFiles(
+                from: samplesDirectory,
+                rootFolderName: rootFolderName,
+                generatedDirectory: generatedDirectory,
+                defaultDate: sampleDefaultDate,
+                sourceFiles: &sourceFiles
+            )
+        }
+    }
+
+    private static func appendDailySampleLogFiles(
+        from samplesDirectory: URL,
+        rootFolderName: String?,
+        generatedDirectory: URL,
+        defaultDate: Date,
+        sourceFiles: inout [ArchiveSourceFile]
+    ) throws {
+        let rowsByDay = Dictionary(grouping: sampleLogRows(in: samplesDirectory, defaultDate: defaultDate)) { row in
+            exportDayString(from: row.date)
+        }
+        guard !rowsByDay.isEmpty else { return }
+
+        for dayFolder in rowsByDay.keys.sorted() {
+            let rows = (rowsByDay[dayFolder] ?? []).sorted { lhs, rhs in
+                if lhs.date != rhs.date {
+                    return lhs.date < rhs.date
+                }
+                return lhs.text < rhs.text
+            }
+            let generatedDayDirectory = generatedDirectory.appendingPathComponent(dayFolder, isDirectory: true)
+            try FileManager.default.createDirectory(at: generatedDayDirectory, withIntermediateDirectories: true)
+
+            let csvFilename = "samples_log_\(dayFolder).csv"
+            let csvData = sampleLogCSVData(rows: rows.map(\.text))
+            let csvURL = generatedDayDirectory.appendingPathComponent(csvFilename)
+            try csvData.write(to: csvURL, options: .atomic)
+            appendGeneratedSampleLogFile(
+                csvURL,
+                filename: csvFilename,
+                dayFolder: dayFolder,
+                rootFolderName: rootFolderName,
+                size: UInt64(csvData.count),
+                modifiedAt: rows.map(\.date).max() ?? defaultDate,
+                sourceFiles: &sourceFiles
+            )
+
+            let xlsxFilename = "samples_log_\(dayFolder).xlsx"
+            let xlsxData = sampleLogXLSXData(rows: rows.map(\.text))
+            let xlsxURL = generatedDayDirectory.appendingPathComponent(xlsxFilename)
+            try xlsxData.write(to: xlsxURL, options: .atomic)
+            appendGeneratedSampleLogFile(
+                xlsxURL,
+                filename: xlsxFilename,
+                dayFolder: dayFolder,
+                rootFolderName: rootFolderName,
+                size: UInt64(xlsxData.count),
+                modifiedAt: rows.map(\.date).max() ?? defaultDate,
+                sourceFiles: &sourceFiles
+            )
+        }
+    }
+
+    private static func appendGeneratedSampleLogFile(
+        _ fileURL: URL,
+        filename: String,
+        dayFolder: String,
+        rootFolderName: String?,
+        size: UInt64,
+        modifiedAt: Date,
+        sourceFiles: inout [ArchiveSourceFile]
+    ) {
+        let itemRootPath = archiveRootPath(
+            rootFolderName: rootFolderName,
+            dayFolder: dayFolder,
+            itemName: "03_sample_logs"
+        )
+        sourceFiles.append(ArchiveSourceFile(
+            fileURL: fileURL,
+            relativePath: zipPath(itemRootPath + "/" + filename),
+            size: size,
+            modifiedAt: modifiedAt
+        ))
+    }
+
+    private static func sampleLogRows(in samplesDirectory: URL, defaultDate: Date) -> [SampleLogRow] {
+        let csvURL = samplesDirectory.appendingPathComponent("samples_log.csv")
+        guard var content = try? String(contentsOf: csvURL, encoding: .utf8) else { return [] }
+        if content.hasPrefix("\u{FEFF}") {
+            content.removeFirst()
+        }
+
+        let lines = content.components(separatedBy: "\n")
+        return lines
+            .dropFirst()
+            .filter { !$0.isEmpty }
+            .map { row in
+                SampleLogRow(
+                    text: row,
+                    date: sampleLogDate(from: row) ?? defaultDate
+                )
+            }
+    }
+
+    private static func sampleLogCSVData(rows: [String]) -> Data {
+        var data = utf8BOM
+        data.append(contentsOf: sampleLogCSVHeader.utf8)
+        if !rows.isEmpty {
+            data.append(contentsOf: rows.joined(separator: "\n").utf8)
+            data.append(0x0A)
+        }
+        return data
+    }
+
+    private static func sampleLogXLSXData(rows: [String]) -> Data {
+        var data = utf8BOM
+        let header = sampleLogCSVHeader.trimmingCharacters(in: .newlines)
+        let tsv = ([header] + rows)
+            .map { parseCSVRow($0).joined(separator: "\t") }
+            .joined(separator: "\n")
+        data.append(contentsOf: tsv.utf8)
+        return data
     }
 
     private static func fullExportPackageName(exportInfos: [ExportItemInfo]) -> String {
@@ -405,12 +553,30 @@ class ShareUtility {
     }
 
     private static func sampleArchiveFolderName(for fileURL: URL) -> String {
-        isSampleImageFile(fileURL) ? "01_sample_photos" : "02_sample_data"
+        isSampleImageFile(fileURL) ? "02_sample_photos" : "04_sample_data"
     }
 
     private static func isSampleImageFile(_ fileURL: URL) -> Bool {
         let ext = fileURL.pathExtension.lowercased()
         return ext == "jpg" || ext == "jpeg"
+    }
+
+    private static func isCurrentSampleLogFile(_ fileURL: URL) -> Bool {
+        let ext = fileURL.pathExtension.lowercased()
+        guard ext == "csv" || ext == "xlsx" else { return false }
+        let stem = fileURL.deletingPathExtension().lastPathComponent
+        return stem == "samples_log" || stem.hasPrefix("samples_log_")
+    }
+
+    private static func sampleLogDate(from row: String) -> Date? {
+        let fields = parseCSVRow(row)
+        if let filename = fields.first, let date = timestampDate(fromFilename: filename) {
+            return date
+        }
+        if fields.count > 4 {
+            return sampleLogDisplayDate(from: fields[4])
+        }
+        return nil
     }
 
     private static func sampleFileExportDate(for fileURL: URL, defaultDate: Date) -> Date {
@@ -446,6 +612,77 @@ class ShareUtility {
             }
         }
         return nil
+    }
+
+    private static func sampleLogDisplayDate(from value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: trimmed) {
+            return date
+        }
+        iso.formatOptions = [.withInternetDateTime]
+        if let date = iso.date(from: trimmed) {
+            return date
+        }
+
+        let formats = [
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "dd/MM/yyyy HH:mm:ss",
+            "dd/MM/yyyy HH:mm"
+        ]
+        for format in formats {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = format
+            formatter.isLenient = false
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+
+        for locale in [Locale.current, Locale(identifier: "vi_VN"), Locale(identifier: "en_US")] {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+        return nil
+    }
+
+    private static func parseCSVRow(_ row: String) -> [String] {
+        var fields: [String] = []
+        var current = ""
+        var inQuotes = false
+        var index = row.startIndex
+        while index < row.endIndex {
+            let character = row[index]
+            if character == "\"" {
+                let next = row.index(after: index)
+                if inQuotes && next < row.endIndex && row[next] == "\"" {
+                    current.append("\"")
+                    index = row.index(after: next)
+                    continue
+                }
+                inQuotes.toggle()
+            } else if character == "," && !inQuotes {
+                fields.append(current)
+                current = ""
+            } else {
+                current.append(character)
+            }
+            index = row.index(after: index)
+        }
+        fields.append(current)
+        return fields
     }
 
     private static func fallbackDate(for url: URL) -> Date {
