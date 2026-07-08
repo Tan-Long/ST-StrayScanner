@@ -120,6 +120,7 @@ class ShareUtility {
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         SampleLogger.shared.prepareStorageForExport()
+        try DurianSurveyStore.shared.prepareExportFiles()
         let tempDirectory = fileManager.temporaryDirectory
         let generatedDirectory = tempDirectory.appendingPathComponent(
             "StrayScanner_export_generated_\(UUID().uuidString)",
@@ -248,10 +249,13 @@ class ShareUtility {
                     usedNames: &usedNamesForGroup
                 )
                 usedExportNamesByGroup[groupKey] = usedNamesForGroup
+                let archiveItemName = groupByDay && item.lastPathComponent == "surveys"
+                    ? "05_surveys"
+                    : (groupByDay ? "01_videos/\(exportedFolderName)" : exportedFolderName)
                 let itemRootPath = archiveRootPath(
                     rootFolderName: rootFolderName,
                     dayFolder: groupByDay ? info.dayFolder : nil,
-                    itemName: groupByDay ? "01_videos/\(exportedFolderName)" : exportedFolderName
+                    itemName: archiveItemName
                 )
                 guard let enumerator = fileManager.enumerator(
                     at: item,
@@ -780,7 +784,7 @@ class ShareUtility {
     private static func shouldIncludeInFullExport(_ url: URL) -> Bool {
         let fileManager = FileManager.default
         let name = url.lastPathComponent
-        if name == "samples" || name.hasPrefix("cay_") {
+        if name == "samples" || name == "surveys" || name.hasPrefix("cay_") {
             return true
         }
         return fileManager.fileExists(atPath: url.appendingPathComponent("rgb.mp4").path)
