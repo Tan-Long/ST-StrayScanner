@@ -32,6 +32,8 @@
 	<string>For recording GPS coordinates with each dataset frame.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>For recording device orientation and gravity vector with each dataset frame.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>For recording interview audio attached to survey forms.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>For saving sample photos to your photo library.</string>
 	<key>UIApplicationSceneManifest</key>
