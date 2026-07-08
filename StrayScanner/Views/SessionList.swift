@@ -1345,12 +1345,10 @@ private struct DurianSurveyQuestionField: View {
                 TextField("Nhập câu trả lời", text: $answer)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             case .yesNo:
-                Picker(question.text, selection: $answer) {
-                    Text("Chưa chọn").tag("")
-                    Text("Có").tag("Có")
-                    Text("Không").tag("Không")
+                HStack(spacing: 8) {
+                    yesNoButton("Có")
+                    yesNoButton("Không")
                 }
-                .pickerStyle(SegmentedPickerStyle())
             case .choice(let options):
                 Picker("Chọn", selection: $answer) {
                     Text("Chưa chọn").tag("")
@@ -1361,6 +1359,32 @@ private struct DurianSurveyQuestionField: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func yesNoButton(_ value: String) -> some View {
+        let isSelected = answer == value
+        return Button(action: {
+            answer = isSelected ? "" : value
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                Text(value)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                Spacer()
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity)
+            .foregroundColor(isSelected ? .blue : Color("TextColor"))
+            .background(isSelected ? Color.blue.opacity(0.12) : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.blue : Color.secondary.opacity(0.35), lineWidth: 1)
+            )
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityIdentifier("durianSurvey.\(question.id).\(value)")
     }
 }
 
