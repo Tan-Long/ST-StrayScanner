@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Durian Survey Preview</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2ed;
+      --panel: #ffffff;
+      --panel-2: #f8faf7;
+      --text: #172017;
+      --muted: #6a7468;
+      --line: #d9e0d6;
+      --green: #2f7d45;
+      --orange: #d97b1e;
+      --red: #c23a2b;
+      --blue: #2563eb;
+      --purple: #7c3aed;
+      --radius: 8px;
+      --shadow: 0 16px 42px rgba(29, 43, 30, 0.12);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #e9f1e6 0, var(--bg) 34%, #f7f7f2 100%);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--green); color: white; border-color: var(--green); }
+    button.warn { background: var(--orange); color: white; border-color: var(--orange); }
+    button.danger { background: var(--red); color: white; border-color: var(--red); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(47, 125, 69, .28);
+      outline-offset: 2px;
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 32% 28%, #eec673 0 16%, transparent 18%),
+                  linear-gradient(135deg, var(--green), #79aa45);
+      box-shadow: inset 0 -7px 14px rgba(0,0,0,.13);
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+    .sub {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .phone, .workspace {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .phone {
+      position: sticky;
+      top: 16px;
+      max-height: calc(100vh - 32px);
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-head {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 10px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--line);
+    }
+    .tab {
+      min-height: 36px;
+      padding: 7px 8px;
+      font-size: 13px;
+      border-radius: 7px;
+      background: transparent;
+    }
+    .tab.active {
+      color: white;
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .screen {
+      overflow: auto;
+      padding: 14px;
+    }
+    .section {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .section-title {
+      padding: 10px 12px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 13px;
+      color: #2c3a2a;
+    }
+    .section-body { padding: 12px; }
+    .row {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .row:last-child { margin-bottom: 0; }
+    label {
+      font-size: 13px;
+      font-weight: 650;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      min-height: 40px;
+      padding: 9px 10px;
+      background: white;
+      color: var(--text);
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .sample-preview {
+      position: relative;
+      min-height: 168px;
+      border-radius: 7px;
+      border: 1px solid #1f2922;
+      background: #101714;
+      overflow: hidden;
+      color: white;
+    }
+    .sample-preview::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 7px;
+    }
+    .sample-preview::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 48%, transparent 0 42px, rgba(255,255,255,.28) 43px, transparent 44px),
+        linear-gradient(90deg, transparent 49.7%, rgba(255,255,255,.26) 50%, transparent 50.3%),
+        linear-gradient(0deg, transparent 49.7%, rgba(255,255,255,.26) 50%, transparent 50.3%);
+    }
+    .sample-overlay {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      top: 8px;
+      padding: 7px 8px;
+      border-radius: 5px;
+      background: rgba(0,0,0,.56);
+      font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      z-index: 1;
+    }
+    .segment {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .yesno-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .yesno-grid button {
+      display: flex;
+      justify-content: flex-start;
+      gap: 7px;
+      min-height: 42px;
+      color: var(--text);
+    }
+    .yesno-grid button.active {
+      color: #1f5fbf;
+      background: #eaf2ff;
+      border-color: #2f6fd6;
+      font-weight: 750;
+    }
+    .segment button.active {
+      background: #e7f0e6;
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 750;
+    }
+    .sample-photo {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+      margin-top: 10px;
+    }
+    .sample-thumb {
+      width: 74px;
+      height: 74px;
+      border-radius: 7px;
+      background: #223227;
+      border: 1px solid #17231b;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 24px;
+    }
+    .capture-btn {
+      width: 100%;
+      min-height: 54px;
+      font-weight: 800;
+      color: white;
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .metric {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-variant-numeric: tabular-nums;
+      font-size: 22px;
+    }
+    .saved-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+    .saved-item:first-child { border-top: 0; }
+    .saved-title {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .saved-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+    .workspace {
+      padding: 18px;
+    }
+    .workspace h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .question-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 12px;
+    }
+    .q-title {
+      font-size: 13px;
+      font-weight: 750;
+      margin-bottom: 10px;
+      line-height: 1.35;
+    }
+    .chart-wrap {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+    .pie {
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      background: #dfe7dc;
+      border: 1px solid var(--line);
+    }
+    .legend {
+      display: grid;
+      gap: 8px;
+    }
+    .bar-row {
+      display: grid;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .bar-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e5ebe2;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: var(--green);
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 7px;
+    }
+    .detail {
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px 14px;
+      font-size: 13px;
+    }
+    .detail-grid b { display: block; color: var(--muted); font-size: 12px; }
+    .empty {
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-2);
+    }
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 860px) {
+      .app { padding: 12px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .layout { grid-template-columns: 1fr; }
+      .phone { position: relative; top: 0; max-height: none; }
+      .metrics { grid-template-columns: 1fr; }
+      .chart-wrap { grid-template-columns: 1fr; }
+      .pie { margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Stray Scanner · Bảng hỏi vườn</h1>
+          <div class="sub">Preview web để check UI trước khi build iOS</div>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="resetData" class="danger">Reset data demo</button>
+        <button id="seedData" class="warn">Nạp mẫu</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <div class="phone">
+        <div class="phone-head">
+          <h1>Bảng hỏi vườn</h1>
+          <div class="sub" id="phoneSummary">0 phiếu · 0 có GPS</div>
+        </div>
+        <nav class="tabs" aria-label="Preview tabs">
+          <button class="tab active" data-tab="form">Form</button>
+          <button class="tab" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="saved">Phiếu</button>
+        </nav>
+        <div class="screen" id="screen"></div>
+      </div>
+
+      <aside class="workspace">
+        <h2>Dashboard tổng hợp</h2>
+        <div id="workspaceDashboard"></div>
+        <div class="footer-actions">
+          <button id="exportCsv">Xuất CSV</button>
+          <button id="exportXlsx">Xuất XLSX demo</button>
+          <button id="exportStats">Xuất thống kê JSON</button>
+        </div>
+        <div class="detail" id="recordDetail"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const colors = ['#d97b1e', '#2563eb', '#2f7d45', '#7c3aed', '#c23a2b', '#d4a72c', '#667085'];
+    const key = 'durian-survey-preview-records';
+    const sections = [
+      ['A. Thông tin chung', [
+        ['A1', 'Mã số hộ/vườn', 'text'],
+        ['A2', 'Họ và tên chủ vườn', 'text'],
+        ['A3', 'Số điện thoại', 'text'],
+        ['A4', 'Địa chỉ (xã, huyện, tỉnh)', 'text'],
+        ['A6', 'Diện tích trồng sầu riêng (ha)', 'text'],
+        ['A7', 'Gia đình bắt đầu trồng sầu riêng từ năm nào?', 'text']
+      ]],
+      ['B. Đặc điểm vườn', [
+        ['B1', 'Giống sầu riêng đang trồng', 'text'],
+        ['B2', 'Tuổi trung bình của cây (năm)', 'text'],
+        ['B3', 'Khoảng cách trồng', 'text'],
+        ['B4', 'Địa hình vườn', 'choice', ['Bằng', 'Dốc nhẹ', 'Đồi']],
+        ['B5', 'Loại đất', 'choice', ['Bazan', 'Phù sa', 'Xám', 'Khác']],
+        ['B6', 'Trước đây khu đất được sử dụng để trồng gì?', 'text'],
+        ['B7', 'Vườn có hệ thống thoát nước không?', 'yesno']
+      ]],
+      ['C. Quản lý đất', [
+        ['C1', 'Gia đình có bón vôi không?', 'yesno'],
+        ['C2', 'Nếu có, lượng bón (kg/cây/năm)', 'text'],
+        ['C3', 'Có sử dụng thạch cao không?', 'yesno'],
+        ['C4', 'Có sử dụng biochar không?', 'yesno'],
+        ['C5', 'Có sử dụng diatomite không?', 'yesno'],
+        ['C6', 'Có sử dụng phân hữu cơ không?', 'yesno'],
+        ['C7', 'Nếu có, loại phân hữu cơ', 'text']
+      ]],
+      ['D. Phân bón', [
+        ['D1', 'Gia đình bón phân bao nhiêu lần/năm?', 'text'],
+        ['D2', 'Các loại phân NPK thường sử dụng', 'text'],
+        ['D3', 'Có bổ sung Canxi (Ca) không?', 'yesno'],
+        ['D4', 'Có bổ sung Magie (Mg) không?', 'yesno'],
+        ['D5', 'Có bổ sung Silic (Si) không?', 'yesno'],
+        ['D6', 'Có sử dụng phân vi lượng không?', 'yesno'],
+        ['D7', 'Nếu có, gồm những nguyên tố nào?', 'text']
+      ]],
+      ['E. Nước tưới', [
+        ['E1', 'Nguồn nước tưới chính', 'choice', ['Giếng', 'Hồ', 'Sông', 'Khác']],
+        ['E2', 'Phương pháp tưới', 'choice', ['Nhỏ giọt', 'Phun', 'Béc', 'Khác']],
+        ['E3', 'Mùa khô tưới bao nhiêu lần/tuần?', 'text']
+      ]],
+      ['F. Ra hoa và quản lý quả', [
+        ['F1', 'Có xử lý ra hoa không?', 'yesno'],
+        ['F2', 'Nếu có, biện pháp xử lý', 'text'],
+        ['F3', 'Có xiết nước không?', 'yesno'],
+        ['F4', 'Có tỉa quả không?', 'yesno'],
+        ['F5', 'Trung bình mỗi cây giữ lại bao nhiêu quả?', 'text'],
+        ['F6', 'Có bao trái không?', 'yesno']
+      ]],
+      ['G. Thuốc BVTV', [
+        ['G1', 'Một năm phun thuốc bao nhiêu lần?', 'text'],
+        ['G2', 'Chủ yếu sử dụng thuốc gì?', 'text'],
+        ['G3', 'Có sử dụng thuốc diệt cỏ không?', 'yesno']
+      ]],
+      ['H. Thu hoạch', [
+        ['H1', 'Thường thu hoạch vào tháng nào?', 'text'],
+        ['H2', 'Tiêu chí xác định thời điểm thu hoạch', 'text'],
+        ['H3', 'Năng suất trung bình (kg/cây)', 'text'],
+        ['H4', 'Khối lượng quả trung bình (kg)', 'text']
+      ]],
+      ['I. Môi trường', [
+        ['I1', 'Vườn có gần đường giao thông lớn không?', 'yesno'],
+        ['I2', 'Vườn có gần khu công nghiệp không?', 'yesno'],
+        ['I3', 'Vườn có gần khu khai thác khoáng sản không?', 'yesno'],
+        ['I4', 'Vườn có thường xuyên bị ngập không?', 'yesno']
+      ]],
+      ['J. Lịch sử canh tác', [
+        ['J1', '10 năm gần đây có thay đổi giống cây không?', 'text'],
+        ['J2', 'Đã từng bón bùn ao/bùn sông chưa?', 'yesno'],
+        ['J3', 'Nguồn phân chuồng chủ yếu', 'text'],
+        ['J4', 'Có thường xuyên sử dụng phân lân không?', 'text'],
+        ['J5', 'Đã cải tạo đất bằng vôi/thạch cao/biochar/diatomite từ năm nào?', 'text'],
+        ['J6', '5 năm gần đây có ngập lụt hoặc hạn kéo dài không?', 'text'],
+        ['J7', 'Đã từng phân tích đất hoặc nước chưa?', 'yesno']
+      ]],
+      ['K. Lấy mẫu', [
+        ['K1', 'Lấy mẫu đất', 'yesno'],
+        ['K2', 'Lấy mẫu lá', 'yesno'],
+        ['K3', 'Lấy mẫu quả', 'yesno'],
+        ['K4', 'Lấy mẫu nước', 'yesno'],
+        ['K5', 'Ghi chú', 'longtext']
+      ]]
+    ];
+    const questions = sections.flatMap(section => section[1].map(q => ({ section: section[0], id: q[0], label: q[1], type: q[2], options: q[3] || [] })));
+    let state = {
+      tab: 'form',
+      records: loadRecords(),
+      answers: {},
+      gps: null,
+      audioConsent: false,
+      recording: false,
+      audioFile: '',
+      sample: { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' },
+      samplePhoto: '',
+      selected: null
+    };
+
+    function loadRecords() {
+      try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+    }
+    function saveRecords() {
+      localStorage.setItem(key, JSON.stringify(state.records));
+    }
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function q(id) { return questions.find(item => item.id === id); }
+    function answer(record, id) { return (record.answers && record.answers[id]) || ''; }
+    function title(record) {
+      const parts = [answer(record, 'A1'), answer(record, 'A2')].filter(Boolean);
+      return parts.length ? parts.join(' - ') : 'Phiếu khảo sát';
+    }
+    function percent(value) { return `${Math.round(value * 100)}%`; }
+    function setTab(tab) {
+      state.tab = tab;
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      render();
+    }
+    function summary() {
+      const total = state.records.length;
+      const gps = state.records.filter(r => r.gps).length;
+      const items = questions.map(question => {
+        const values = state.records.map(record => (answer(record, question.id) || '').trim()).filter(Boolean);
+        const counts = {};
+        values.forEach(value => counts[value] = (counts[value] || 0) + 1);
+        const options = question.type === 'yesno' ? ['Có', 'Không'] : question.options;
+        const stats = (options.length ? options : Object.keys(counts).sort((a, b) => counts[b] - counts[a]))
+          .map(name => ({ name, count: counts[name] || 0, pct: values.length ? (counts[name] || 0) / values.length : 0 }));
+        Object.keys(counts).filter(name => options.length && !options.includes(name)).forEach(name => {
+          stats.push({ name, count: counts[name], pct: values.length ? counts[name] / values.length : 0 });
+        });
+        return { question, answered: values.length, blank: total - values.length, stats };
+      });
+      const answered = items.reduce((sum, item) => sum + item.answered, 0);
+      return { total, gps, avg: total ? answered / (questions.length * total) : 0, items };
+    }
+
+    function render() {
+      const s = summary();
+      document.getElementById('phoneSummary').textContent = `${s.total} phiếu · ${s.gps} có GPS`;
+      if (state.tab === 'form') renderForm();
+      if (state.tab === 'dashboard') renderDashboard(document.getElementById('screen'), true);
+      if (state.tab === 'saved') renderSaved();
+      renderDashboard(document.getElementById('workspaceDashboard'), false);
+      renderDetail();
+    }
+
+    function renderForm() {
+      const screen = document.getElementById('screen');
+      const sectionHtml = sections.map(section => `
+        <section class="section">
+          <div class="section-title">${escapeHtml(section[0])}</div>
+          <div class="section-body">
+            ${section[1].map(item => fieldHtml(q(item[0]))).join('')}
+          </div>
+        </section>
+      `).join('');
+      screen.innerHTML = `
+        <section class="section">
+          <div class="section-title">A5. Tọa độ GPS</div>
+          <div class="section-body">
+            <div class="button-row">
+              <button class="primary" id="gpsBtn">⌖ Lấy GPS</button>
+              <span class="status">${state.gps ? `Lat ${state.gps.lat}, Long ${state.gps.lon}, ±${state.gps.acc}m` : 'Chưa có GPS'}</span>
+            </div>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-title">Ghi âm phỏng vấn</div>
+          <div class="section-body">
+            <label><input id="audioConsent" type="checkbox" ${state.audioConsent ? 'checked' : ''}> Đã xin phép ghi âm</label>
+            <div class="button-row" style="margin-top:10px">
+              <button id="audioBtn" class="${state.recording ? 'danger' : ''}" ${state.audioConsent ? '' : 'disabled'}>${state.recording ? '■ Dừng ghi âm' : '◉ Ghi âm'}</button>
+              <span class="status">${state.audioFile ? `Audio: ${escapeHtml(state.audioFile)}` : 'Preview mô phỏng file .m4a'}</span>
+            </div>
+          </div>
+        </section>
+        ${samplePhotoHtml()}
+        ${sectionHtml}
+        <section class="section">
+          <div class="section-body button-row">
+            <button class="primary" id="saveBtn">▣ Lưu phiếu offline</button>
+            <button id="newBtn">＋ Phiếu mới</button>
+          </div>
+        </section>
+      `;
+      bindForm();
+    }
+    function fieldHtml(question) {
+      const value = state.answers[question.id] || '';
+      if (question.type === 'yesno') {
+        return `<div class="row">
+          <label>${question.id}. ${escapeHtml(question.label)}</label>
+          <div class="yesno-grid">
+            ${yesNoButton(question.id, 'Có', value)}
+            ${yesNoButton(question.id, 'Không', value)}
+          </div>
+        </div>`;
+      }
+      if (question.type === 'choice') {
+        const options = question.options;
+        return `<div class="row">
+          <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+          <select id="${question.id}" data-id="${question.id}">
+            <option value="">Chưa chọn</option>
+            ${options.map(opt => `<option ${value === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
+          </select>
+        </div>`;
+      }
+      if (question.type === 'longtext') {
+        return `<div class="row">
+          <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+          <textarea id="${question.id}" data-id="${question.id}">${escapeHtml(value)}</textarea>
+        </div>`;
+      }
+      return `<div class="row">
+        <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+        <input id="${question.id}" data-id="${question.id}" value="${escapeHtml(value)}">
+      </div>`;
+    }
+    function yesNoButton(id, option, value) {
+      const active = value === option;
+      return `<button type="button" class="${active ? 'active' : ''}" data-yesno="${id}:${option}">${active ? '✓' : '○'} ${option}</button>`;
+    }
+    function bindForm() {
+      document.querySelectorAll('[data-id]').forEach(input => input.addEventListener('input', event => {
+        state.answers[event.target.dataset.id] = event.target.value;
+      }));
+      document.querySelectorAll('[data-yesno]').forEach(btn => btn.addEventListener('click', event => {
+        const [id, value] = event.currentTarget.dataset.yesno.split(':');
+        state.answers[id] = state.answers[id] === value ? '' : value;
+        renderForm();
+      }));
+      document.getElementById('gpsBtn').addEventListener('click', takeGps);
+      document.getElementById('audioConsent').addEventListener('change', event => {
+        state.audioConsent = event.target.checked;
+        if (!state.audioConsent) {
+          state.recording = false;
+          state.audioFile = '';
+        }
+        renderForm();
+      });
+      document.getElementById('audioBtn').addEventListener('click', toggleAudio);
+      document.getElementById('sampleID').addEventListener('input', event => state.sample.id = event.target.value);
+      document.getElementById('sampleSite').addEventListener('input', event => state.sample.site = event.target.value);
+      document.getElementById('sampleImportant').addEventListener('click', () => {
+        state.sample.important = !state.sample.important;
+        renderForm();
+      });
+      document.querySelectorAll('[data-sample]').forEach(btn => btn.addEventListener('click', event => {
+        const [field, value] = event.target.dataset.sample.split(':');
+        state.sample[field] = value;
+        renderForm();
+      }));
+      document.getElementById('captureSample').addEventListener('click', captureSamplePhoto);
+      document.getElementById('saveBtn').addEventListener('click', saveForm);
+      document.getElementById('newBtn').addEventListener('click', newForm);
+    }
+    function samplePhotoHtml() {
+      const s = state.sample;
+      const site = s.site || (state.gps ? `${state.gps.lat}, ${state.gps.lon}` : 'Chưa có GPS');
+      return `<section class="section" id="samplePhotoSection">
+        <div class="section-title">Chụp ảnh mẫu</div>
+        <div class="section-body">
+          <div class="sample-preview" aria-label="Khung camera mẫu">
+            <div class="sample-overlay">Sample ${escapeHtml(s.id || 'Chưa nhập')} ${s.important ? '*' : ''}<br>${escapeHtml(s.type)} · ${escapeHtml(s.direction)}<br>Site: ${escapeHtml(site)}</div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <label for="sampleID">Sample ID</label>
+            <div class="button-row">
+              <input id="sampleID" value="${escapeHtml(s.id)}" style="flex:1; min-width:180px">
+              <button id="sampleImportant" class="${s.important ? 'warn' : ''}" aria-label="Đánh dấu mẫu quan trọng">${s.important ? '★' : '☆'}</button>
+            </div>
+          </div>
+          <div class="row">
+            <label>Loại mẫu / Hướng lấy mẫu</label>
+            <div class="segment">
+              ${sampleChoice('type', 'Địa y')}
+              ${sampleChoice('type', 'Không địa y')}
+            </div>
+            <div class="segment">
+              ${sampleChoice('direction', 'Upslope')}
+              ${sampleChoice('direction', 'Downslope')}
+            </div>
+          </div>
+          <div class="row">
+            <label for="sampleSite">Site (GPS)</label>
+            <input id="sampleSite" value="${escapeHtml(s.site)}" placeholder="Tự lấy GPS hoặc nhập tay">
+            <div class="status">${state.gps ? `GPS hiện tại: ${state.gps.lat}, ${state.gps.lon}, ±${state.gps.acc}m` : 'Bấm Lấy GPS ở trên để tự điền site.'}</div>
+          </div>
+          <button class="capture-btn" id="captureSample">📷 CHỤP MẪU</button>
+          ${state.samplePhoto ? `<div class="sample-photo"><div class="sample-thumb">✓</div><div><b>Đã lưu ảnh mẫu</b><div class="status">${escapeHtml(state.samplePhoto)}</div></div></div>` : ''}
+        </div>
+      </section>`;
+    }
+    function sampleChoice(field, value) {
+      return `<button type="button" class="${state.sample[field] === value ? 'active' : ''}" data-sample="${field}:${value}">${escapeHtml(value)}</button>`;
+    }
+    function takeGps() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          state.gps = {
+            lat: pos.coords.latitude.toFixed(8),
+            lon: pos.coords.longitude.toFixed(8),
+            acc: Math.round(pos.coords.accuracy || 8)
+          };
+          renderForm();
+        }, useMockGps, { timeout: 3500, enableHighAccuracy: true });
+      } else {
+        useMockGps();
+      }
+    }
+    function useMockGps() {
+      state.gps = { lat: '10.78392100', lon: '106.69540200', acc: 8 };
+      renderForm();
+    }
+    function toggleAudio() {
+      if (!state.audioConsent) return;
+      state.recording = !state.recording;
+      if (!state.recording && !state.audioFile) {
+        const code = (state.answers.A1 || 'survey').replace(/[^A-Za-z0-9_-]/g, '_');
+        state.audioFile = `audio/${code}_audio_${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}.m4a`;
+      }
+      renderForm();
+    }
+    function captureSamplePhoto() {
+      const id = (state.sample.id || 'UNKNOWN').replace(/[^A-Za-z0-9_.-]/g, '_');
+      const flag = state.sample.important ? '_important' : '';
+      const direction = state.sample.direction.toLowerCase();
+      const stamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+      if (!state.sample.site && state.gps) state.sample.site = `${state.gps.lat}, ${state.gps.lon}`;
+      state.samplePhoto = `samples/${id}${flag}_${direction}_${stamp}.jpg`;
+      renderForm();
+    }
+    function saveForm() {
+      if (state.recording) toggleAudio();
+      const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        createdAt: new Date().toISOString(),
+        gps: state.gps,
+        audioConsent: state.audioConsent,
+        audioFile: state.audioFile || '',
+        sample: { ...state.sample },
+        samplePhoto: state.samplePhoto || '',
+        answers: { ...state.answers }
+      };
+      state.records.unshift(record);
+      state.selected = record.id;
+      saveRecords();
+      newForm(false);
+      setTab('saved');
+    }
+    function newForm(keepTab = true) {
+      state.answers = {};
+      state.gps = null;
+      state.audioConsent = false;
+      state.recording = false;
+      state.audioFile = '';
+      state.sample = { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' };
+      state.samplePhoto = '';
+      if (keepTab) render();
+    }
+
+    function renderSaved() {
+      const screen = document.getElementById('screen');
+      if (!state.records.length) {
+        screen.innerHTML = '<div class="empty">Chưa có phiếu đã lưu.</div>';
+        return;
+      }
+      screen.innerHTML = `<section class="section"><div class="section-title">Phiếu đã lưu</div><div class="section-body">
+        ${state.records.map(record => `
+          <div class="saved-item">
+            <div>
+              <div class="saved-title">${escapeHtml(title(record))} ${record.audioFile ? '🎙' : ''}</div>
+              <div class="saved-meta">${new Date(record.createdAt).toLocaleString('vi-VN')} · ${record.gps ? 'Có GPS' : 'Không GPS'}</div>
+            </div>
+            <button data-view="${record.id}">Xem</button>
+          </div>`).join('')}
+      </div></section>`;
+      document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', event => {
+        state.selected = event.target.dataset.view;
+        renderDetail();
+      }));
+    }
+
+    function renderDashboard(target, compact) {
+      const s = summary();
+      if (!s.total) {
+        target.innerHTML = '<div class="empty">Chưa có dữ liệu. Bấm “Nạp mẫu” hoặc lưu một phiếu để xem dashboard.</div>';
+        return;
+      }
+      const cards = s.items.map(item => questionCard(item, compact)).join('');
+      target.innerHTML = `
+        <div class="metrics">
+          <div class="metric"><span>Số phiếu</span><strong>${s.total}</strong></div>
+          <div class="metric"><span>Có GPS</span><strong>${s.gps}</strong></div>
+          <div class="metric"><span>Đã trả lời</span><strong>${percent(s.avg)}</strong></div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="${compact ? '' : 'dash-grid'}">${cards}</div>
+      `;
+    }
+    function questionCard(item, compact) {
+      const isPie = ['yesno', 'choice'].includes(item.question.type) && item.answered > 0;
+      const stats = item.question.type === 'text' || item.question.type === 'longtext' ? item.stats.slice(0, 6) : item.stats;
+      return `<article class="question-card">
+        <div class="q-title">${item.question.id}. ${escapeHtml(item.question.label)}</div>
+        ${isPie ? `<div class="chart-wrap"><div class="pie" style="background:${pieGradient(stats)}"></div><div class="legend">${legend(stats)}</div></div>` : ''}
+        ${stats.length ? stats.map((stat, index) => bar(stat, index)).join('') : '<div class="status">Chưa có câu trả lời.</div>'}
+        <div class="status" style="margin-top:8px">Đã trả lời: ${item.answered} · Chưa nhập: ${item.blank}</div>
+      </article>`;
+    }
+    function pieGradient(stats) {
+      const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+      if (!total) return '#e5ebe2';
+      let cursor = 0;
+      const parts = stats.filter(stat => stat.count > 0).map((stat, index) => {
+        const start = cursor;
+        const end = cursor + stat.count / total * 360;
+        cursor = end;
+        return `${colors[index % colors.length]} ${start}deg ${end}deg`;
+      });
+      return `conic-gradient(${parts.join(',')})`;
+    }
+    function legend(stats) {
+      return stats.map((stat, index) => `<div class="status"><span class="dot" style="background:${colors[index % colors.length]}"></span>${escapeHtml(stat.name)} · ${stat.count}</div>`).join('');
+    }
+    function bar(stat, index) {
+      return `<div class="bar-row">
+        <div class="bar-line"><span>${escapeHtml(stat.name)}</span><span>${stat.count} · ${percent(stat.pct)}</span></div>
+        <div class="bar"><span style="width:${percent(stat.pct)}; background:${colors[index % colors.length]}"></span></div>
+      </div>`;
+    }
+
+    function renderDetail() {
+      const target = document.getElementById('recordDetail');
+      const record = state.records.find(item => item.id === state.selected);
+      if (!record) {
+        target.innerHTML = '<div class="status">Chọn một phiếu đã lưu để xem chi tiết.</div>';
+        return;
+      }
+      target.innerHTML = `<h2>${escapeHtml(title(record))}</h2>
+        <div class="detail-grid">
+          <div><b>Thời gian</b>${new Date(record.createdAt).toLocaleString('vi-VN')}</div>
+          <div><b>GPS</b>${record.gps ? `${record.gps.lat}, ${record.gps.lon}, ±${record.gps.acc}m` : 'Chưa có'}</div>
+          <div><b>Xin phép ghi âm</b>${record.audioConsent ? 'Có' : 'Không'}</div>
+          <div><b>File audio</b>${escapeHtml(record.audioFile || 'Chưa có')}</div>
+          <div><b>Ảnh mẫu</b>${escapeHtml(record.samplePhoto || 'Chưa có')}</div>
+          ${questions.map(question => `<div><b>${question.id}. ${escapeHtml(question.label)}</b>${escapeHtml(answer(record, question.id) || 'Chưa nhập')}</div>`).join('')}
+        </div>`;
+    }
+
+    function csvRows() {
+      const header = ['survey_id', 'created_at', 'latitude', 'longitude', 'gps_accuracy_m', 'audio_consent', 'audio_file', 'sample_photo', ...questions.map(item => `${item.id} ${item.label}`)];
+      const rows = state.records.slice().reverse().map(record => [
+        record.id,
+        record.createdAt,
+        record.gps?.lat || '',
+        record.gps?.lon || '',
+        record.gps?.acc || '',
+        record.audioConsent ? 'Có' : 'Không',
+        record.audioFile || '',
+        record.samplePhoto || '',
+        ...questions.map(item => answer(record, item.id))
+      ]);
+      return [header, ...rows];
+    }
+    function statsRows() {
+      const s = summary();
+      const rows = [['question_id', 'question', 'answer', 'count', 'total_forms', 'answered_forms', 'blank_forms', 'percent_of_answered']];
+      s.items.forEach(item => {
+        item.stats.forEach(stat => rows.push([item.question.id, item.question.label, stat.name, stat.count, s.total, item.answered, item.blank, Math.round(stat.pct * 100)]));
+        rows.push([item.question.id, item.question.label, 'Chưa nhập', item.blank, s.total, item.answered, item.blank, '']);
+      });
+      return rows;
+    }
+    function toCsv(rows, sep = ',') {
+      return rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(sep)).join('\n') + '\n';
+    }
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    function seed() {
+      state.records = [
+        {
+          id: 'demo-1',
+          createdAt: new Date(Date.now() - 3600_000).toISOString(),
+          gps: { lat: '10.78392100', lon: '106.69540200', acc: 8 },
+          audioConsent: true,
+          audioFile: 'audio/M01_audio_20260708_143000.m4a',
+          sample: { id: 'M01-ĐY-UP', important: true, type: 'Địa y', direction: 'Upslope', site: '10.78392100, 106.69540200' },
+          samplePhoto: 'samples/M01-DY-UP_important_upslope_20260708143000.jpg',
+          answers: { A1: 'M01', A2: 'Nguyễn Văn A', A4: 'Cai Lậy, Tiền Giang', B1: 'Ri6', B4: 'Bằng', B5: 'Phù sa', B7: 'Có', C1: 'Có', C3: 'Không', D3: 'Có', D4: 'Có', E1: 'Giếng', E2: 'Béc', F1: 'Có', G3: 'Không', I1: 'Không', J2: 'Không', K1: 'Có', K3: 'Có' }
+        },
+        {
+          id: 'demo-2',
+          createdAt: new Date(Date.now() - 7200_000).toISOString(),
+          gps: { lat: '11.00231200', lon: '107.23880100', acc: 11 },
+          audioConsent: false,
+          audioFile: '',
+          sample: { id: 'M02-ĐY-DOWN', important: false, type: 'Địa y', direction: 'Downslope', site: '11.00231200, 107.23880100' },
+          samplePhoto: 'samples/M02-DY-DOWN_downslope_20260708140000.jpg',
+          answers: { A1: 'M02', A2: 'Trần Thị B', A4: 'Đạ Huoai, Lâm Đồng', B1: 'Monthong', B4: 'Dốc nhẹ', B5: 'Bazan', B7: 'Có', C1: 'Không', C3: 'Không', D3: 'Có', D4: 'Không', E1: 'Hồ', E2: 'Nhỏ giọt', F1: 'Không', G3: 'Có', I1: 'Có', J2: 'Không', K1: 'Có', K2: 'Có' }
+        }
+      ];
+      state.selected = 'demo-1';
+      saveRecords();
+      render();
+    }
+
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.tab)));
+    document.getElementById('resetData').addEventListener('click', () => {
+      state.records = [];
+      state.selected = null;
+      saveRecords();
+      render();
+    });
+    document.getElementById('seedData').addEventListener('click', seed);
+    document.getElementById('exportCsv').addEventListener('click', () => download('surveys.csv', '\ufeff' + toCsv(csvRows()), 'text/csv;charset=utf-8'));
+    document.getElementById('exportXlsx').addEventListener('click', () => download('surveys.xlsx', '\ufeff' + toCsv(csvRows(), '\t'), 'application/vnd.ms-excel;charset=utf-8'));
+    document.getElementById('exportStats').addEventListener('click', () => download('surveys_statistics.json', JSON.stringify({ records: state.records.length, stats: summary() }, null, 2), 'application/json'));
+    render();
+  </script>
+</body>
+</html>
