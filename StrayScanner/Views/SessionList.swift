@@ -452,80 +452,47 @@ private let durianSurveySections: [DurianSurveySection] = [
         DurianSurveyQuestion(id: "A3", text: "Số điện thoại", kind: .text),
         DurianSurveyQuestion(id: "A4", text: "Địa chỉ (xã, huyện, tỉnh)", kind: .text),
         DurianSurveyQuestion(id: "A6", text: "Diện tích trồng sầu riêng (ha)", kind: .text),
-        DurianSurveyQuestion(id: "A7", text: "Gia đình bắt đầu trồng sầu riêng từ năm nào?", kind: .text)
+        DurianSurveyQuestion(id: "A7", text: "Vườn đang lấy mẫu trồng từ năm nào (vườn khoảng bao nhiêu tuổi)?", kind: .text)
     ]),
     DurianSurveySection(title: "B. Đặc điểm vườn", questions: [
-        DurianSurveyQuestion(id: "B1", text: "Giống sầu riêng đang trồng", kind: .text),
-        DurianSurveyQuestion(id: "B2", text: "Tuổi trung bình của cây (năm)", kind: .text),
-        DurianSurveyQuestion(id: "B3", text: "Khoảng cách trồng", kind: .text),
-        DurianSurveyQuestion(id: "B4", text: "Địa hình vườn", kind: .choice(["Bằng", "Dốc nhẹ", "Đồi"])),
-        DurianSurveyQuestion(id: "B5", text: "Loại đất", kind: .choice(["Bazan", "Phù sa", "Xám", "Khác"])),
-        DurianSurveyQuestion(id: "B6", text: "Trước đây khu đất được sử dụng để trồng gì?", kind: .text),
-        DurianSurveyQuestion(id: "B7", text: "Vườn có hệ thống thoát nước không?", kind: .yesNo)
+        DurianSurveyQuestion(id: "B1", text: "Vườn hiện đang trồng giống sầu riêng nào?", kind: .text)
     ]),
-    DurianSurveySection(title: "C. Quản lý đất", questions: [
-        DurianSurveyQuestion(id: "C1", text: "Gia đình có bón vôi không?", kind: .yesNo),
+    DurianSurveySection(title: "C. Phân bón", questions: [
+        DurianSurveyQuestion(id: "C1", text: "Vườn mình dùng loại phân bón đất gì? (Đạm, Lân, Kali, Tổng hợp, Hữu cơ)", kind: .text),
         DurianSurveyQuestion(id: "C2", text: "Nếu có, lượng bón (kg/cây/năm)", kind: .text),
-        DurianSurveyQuestion(id: "C3", text: "Có sử dụng thạch cao không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "C4", text: "Có sử dụng biochar không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "C5", text: "Có sử dụng diatomite không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "C6", text: "Có sử dụng phân hữu cơ không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "C7", text: "Nếu có, loại phân hữu cơ", kind: .text)
+        DurianSurveyQuestion(id: "C3", text: "Có sử dụng phân bón lá không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "C4", text: "Nếu có dùng loại gì?", kind: .text),
+        DurianSurveyQuestion(id: "C5", text: "Liều lượng phân bón lá như thế nào?", kind: .text)
     ]),
-    DurianSurveySection(title: "D. Phân bón", questions: [
-        DurianSurveyQuestion(id: "D1", text: "Gia đình bón phân bao nhiêu lần/năm?", kind: .text),
-        DurianSurveyQuestion(id: "D2", text: "Các loại phân NPK thường sử dụng", kind: .text),
-        DurianSurveyQuestion(id: "D3", text: "Có bổ sung Canxi (Ca) không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "D4", text: "Có bổ sung Magie (Mg) không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "D5", text: "Có bổ sung Silic (Si) không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "D6", text: "Có sử dụng phân vi lượng không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "D7", text: "Nếu có, gồm những nguyên tố nào?", kind: .text)
+    DurianSurveySection(title: "D. Nước tưới", questions: [
+        DurianSurveyQuestion(id: "D1", text: "Nguồn nước tưới chính", kind: .choice(["Giếng", "Hồ", "Sông", "Khác"])),
+        DurianSurveyQuestion(id: "D2", text: "Phương pháp tưới", kind: .choice(["Nhỏ giọt", "Phun", "Béc", "Khác"]))
     ]),
-    DurianSurveySection(title: "E. Nước tưới", questions: [
-        DurianSurveyQuestion(id: "E1", text: "Nguồn nước tưới chính", kind: .choice(["Giếng", "Hồ", "Sông", "Khác"])),
-        DurianSurveyQuestion(id: "E2", text: "Phương pháp tưới", kind: .choice(["Nhỏ giọt", "Phun", "Béc", "Khác"])),
-        DurianSurveyQuestion(id: "E3", text: "Mùa khô tưới bao nhiêu lần/tuần?", kind: .text)
+    DurianSurveySection(title: "E. Ra hoa và quản lý quả (xin thuốc kích mầm/tên/vỏ nếu có)", questions: [
+        DurianSurveyQuestion(id: "E1", text: "Có sử dụng thuốc kích mầm hoa không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "E2", text: "Nếu có, dùng loại gì?", kind: .text),
+        DurianSurveyQuestion(id: "E3", text: "Liều lượng dùng như thế nào?", kind: .text),
+        DurianSurveyQuestion(id: "E4", text: "Dùng thời điểm nào?", kind: .text),
+        DurianSurveyQuestion(id: "E5", text: "Có tỉa quả không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "E6", text: "Mỗi cây thường khoảng bao nhiêu quả?", kind: .text)
     ]),
-    DurianSurveySection(title: "F. Ra hoa và quản lý quả", questions: [
-        DurianSurveyQuestion(id: "F1", text: "Có xử lý ra hoa không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "F2", text: "Nếu có, biện pháp xử lý", kind: .text),
-        DurianSurveyQuestion(id: "F3", text: "Có xiết nước không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "F4", text: "Có tỉa quả không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "F5", text: "Trung bình mỗi cây giữ lại bao nhiêu quả?", kind: .text),
-        DurianSurveyQuestion(id: "F6", text: "Có bao trái không?", kind: .yesNo)
-    ]),
-    DurianSurveySection(title: "G. Thuốc BVTV", questions: [
-        DurianSurveyQuestion(id: "G1", text: "Một năm phun thuốc bao nhiêu lần?", kind: .text),
-        DurianSurveyQuestion(id: "G2", text: "Chủ yếu sử dụng thuốc gì?", kind: .text),
-        DurianSurveyQuestion(id: "G3", text: "Có sử dụng thuốc diệt cỏ không?", kind: .yesNo)
+    DurianSurveySection(title: "G. Thuốc BVTV (xin thuốc/tên/vỏ nếu có)", questions: [
+        DurianSurveyQuestion(id: "G1", text: "Dùng thuốc bảo vệ thực vật gì?", kind: .text),
+        DurianSurveyQuestion(id: "G2", text: "Thời điểm dùng?", kind: .text),
+        DurianSurveyQuestion(id: "G3", text: "Có sử dụng thuốc diệt cỏ không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "G4", text: "Nếu có, dùng loại gì?", kind: .text),
+        DurianSurveyQuestion(id: "G5", text: "Liều lượng như thế nào?", kind: .text)
     ]),
     DurianSurveySection(title: "H. Thu hoạch", questions: [
-        DurianSurveyQuestion(id: "H1", text: "Thường thu hoạch vào tháng nào?", kind: .text),
-        DurianSurveyQuestion(id: "H2", text: "Tiêu chí xác định thời điểm thu hoạch", kind: .text),
-        DurianSurveyQuestion(id: "H3", text: "Năng suất trung bình (kg/cây)", kind: .text),
-        DurianSurveyQuestion(id: "H4", text: "Khối lượng quả trung bình (kg)", kind: .text)
-    ]),
-    DurianSurveySection(title: "I. Môi trường", questions: [
-        DurianSurveyQuestion(id: "I1", text: "Vườn có gần đường giao thông lớn không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "I2", text: "Vườn có gần khu công nghiệp không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "I3", text: "Vườn có gần khu khai thác khoáng sản không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "I4", text: "Vườn có thường xuyên bị ngập không?", kind: .yesNo)
-    ]),
-    DurianSurveySection(title: "J. Lịch sử canh tác", questions: [
-        DurianSurveyQuestion(id: "J1", text: "10 năm gần đây có thay đổi giống cây không?", kind: .text),
-        DurianSurveyQuestion(id: "J2", text: "Đã từng bón bùn ao/bùn sông chưa?", kind: .yesNo),
-        DurianSurveyQuestion(id: "J3", text: "Nguồn phân chuồng chủ yếu", kind: .text),
-        DurianSurveyQuestion(id: "J4", text: "Có thường xuyên sử dụng phân lân không?", kind: .text),
-        DurianSurveyQuestion(id: "J5", text: "Đã cải tạo đất bằng vôi/thạch cao/biochar/diatomite từ năm nào?", kind: .text),
-        DurianSurveyQuestion(id: "J6", text: "5 năm gần đây có ngập lụt hoặc hạn kéo dài không?", kind: .text),
-        DurianSurveyQuestion(id: "J7", text: "Đã từng phân tích đất hoặc nước chưa?", kind: .yesNo)
+        DurianSurveyQuestion(id: "H1", text: "Năng suất trung bình (kg/cây)", kind: .text)
     ]),
     DurianSurveySection(title: "K. Lấy mẫu", questions: [
         DurianSurveyQuestion(id: "K1", text: "Lấy mẫu đất", kind: .yesNo),
         DurianSurveyQuestion(id: "K2", text: "Lấy mẫu lá", kind: .yesNo),
         DurianSurveyQuestion(id: "K3", text: "Lấy mẫu quả", kind: .yesNo),
         DurianSurveyQuestion(id: "K4", text: "Lấy mẫu nước", kind: .yesNo),
-        DurianSurveyQuestion(id: "K5", text: "Ghi chú", kind: .text)
+        DurianSurveyQuestion(id: "K5", text: "Phân bón", kind: .yesNo),
+        DurianSurveyQuestion(id: "K6", text: "Kích mầm", kind: .yesNo)
     ])
 ]
 
@@ -535,6 +502,7 @@ private var durianSurveyQuestions: [DurianSurveyQuestion] {
 
 struct DurianSurveyRecord: Codable, Identifiable {
     let id: String
+    let formVersion: Int?
     let createdAt: String
     let latitude: Double?
     let longitude: Double?
@@ -673,6 +641,7 @@ private enum DurianSurveyStats {
 
 final class DurianSurveyStore {
     static let shared = DurianSurveyStore()
+    private static let currentFormVersion = 2
 
     private let fileManager = FileManager.default
     private let surveysDirectory: URL
@@ -706,6 +675,7 @@ final class DurianSurveyStore {
         let id = UUID().uuidString
         let record = DurianSurveyRecord(
             id: id,
+            formVersion: Self.currentFormVersion,
             createdAt: createdAt,
             latitude: location?.coordinate.latitude,
             longitude: location?.coordinate.longitude,
@@ -746,7 +716,8 @@ final class DurianSurveyStore {
             .filter { $0.pathExtension.lowercased() == "json" }
             .compactMap { url -> DurianSurveyRecord? in
                 guard let data = try? Data(contentsOf: url) else { return nil }
-                return try? decoder.decode(DurianSurveyRecord.self, from: data)
+                guard let record = try? decoder.decode(DurianSurveyRecord.self, from: data) else { return nil }
+                return record.formVersion == Self.currentFormVersion ? record : nil
             }
             .sorted { $0.createdAt > $1.createdAt }
     }
@@ -768,6 +739,11 @@ final class DurianSurveyStore {
         return "audio/\(url.lastPathComponent)"
     }
 
+    func audioURL(for relativePath: String?) -> URL? {
+        guard let relativePath = relativePath, !relativePath.isEmpty else { return nil }
+        return surveysDirectory.appendingPathComponent(relativePath)
+    }
+
     private func ensureSurveyDirectory() throws {
         try fileManager.createDirectory(at: surveysDirectory, withIntermediateDirectories: true)
         if !fileManager.fileExists(atPath: csvURL.path) {
@@ -780,6 +756,7 @@ final class DurianSurveyStore {
     private func headerFields() -> [String] {
         let base = [
             "survey_id",
+            "form_version",
             "created_at",
             "latitude",
             "longitude",
@@ -800,6 +777,7 @@ final class DurianSurveyStore {
     private func rowFields(record: DurianSurveyRecord) -> [String] {
         let base = [
             record.id,
+            record.formVersion.map(String.init) ?? "",
             record.createdAt,
             Self.number(record.latitude, digits: 8),
             Self.number(record.longitude, digits: 8),
@@ -1096,6 +1074,59 @@ private final class SurveyAudioRecorder: NSObject, ObservableObject, AVAudioReco
     }
 }
 
+private final class SurveyAudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    @Published var isPlaying = false
+    @Published var errorMessage: String?
+
+    private var player: AVAudioPlayer?
+
+    func toggle(url: URL) {
+        if isPlaying {
+            stop()
+        } else {
+            play(url: url)
+        }
+    }
+
+    func play(url: URL) {
+        stop()
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            errorMessage = "Không tìm thấy file ghi âm."
+            return
+        }
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .spokenAudio)
+            try session.setActive(true)
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.delegate = self
+            player.prepareToPlay()
+            player.play()
+            self.player = player
+            isPlaying = true
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func stop() {
+        player?.stop()
+        player = nil
+        isPlaying = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        DispatchQueue.main.async {
+            self.isPlaying = false
+            self.player = nil
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+    }
+}
+
 private struct DurianSurveyView: View {
     @State private var answers: [String: String] = [:]
     @State private var currentLocation: CLLocation?
@@ -1104,6 +1135,7 @@ private struct DurianSurveyView: View {
     @State private var savedRecords: [DurianSurveyRecord] = []
     @State private var summary = DurianSurveyStats.make(records: [])
     @StateObject private var audioRecorder = SurveyAudioRecorder()
+    @StateObject private var audioPlayer = SurveyAudioPlayer()
 
     var body: some View {
         Form {
@@ -1168,6 +1200,7 @@ private struct DurianSurveyView: View {
         .navigationBarItems(trailing: Button("Mới") {
             answers = [:]
             savedFilename = nil
+            audioPlayer.stop()
             audioRecorder.reset(deleteFile: true)
             refreshLocation()
         })
@@ -1180,6 +1213,7 @@ private struct DurianSurveyView: View {
             }
         }
         .onDisappear {
+            audioPlayer.stop()
             audioRecorder.stop()
             LocationMetadataManager.shared.stop()
         }
@@ -1219,10 +1253,10 @@ private struct DurianSurveyView: View {
                 Text(gpsText)
                     .font(.body)
                     .foregroundColor(Color("TextColor"))
-                Button(action: refreshLocation) {
+                Button(action: updateLocation) {
                     HStack {
                         Image(systemName: "location")
-                        Text("Lấy GPS")
+                        Text("Cập nhật location")
                     }
                 }
                 .accessibilityIdentifier("durianSurvey.refreshGPS")
@@ -1249,9 +1283,23 @@ private struct DurianSurveyView: View {
                 Text("Audio: \(audioFileName)")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+
+                Button(action: toggleAudioPlayback) {
+                    HStack {
+                        Image(systemName: audioPlayer.isPlaying ? "pause.circle" : "play.circle")
+                        Text(audioPlayer.isPlaying ? "Dừng nghe" : "Nghe lại ghi âm")
+                    }
+                }
+                .disabled(audioRecorder.isRecording)
+                .accessibilityIdentifier("durianSurvey.audioPlayback")
             }
 
             if let errorMessage = audioRecorder.errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundColor(Color("DangerColor"))
+            }
+            if let errorMessage = audioPlayer.errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
                     .foregroundColor(Color("DangerColor"))
@@ -1282,12 +1330,26 @@ private struct DurianSurveyView: View {
         currentLocation = LocationMetadataManager.shared.currentLocation
     }
 
+    private func updateLocation() {
+        LocationMetadataManager.shared.start()
+        refreshLocation()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            refreshLocation()
+        }
+    }
+
     private func toggleAudioRecording() {
         if audioRecorder.isRecording {
             audioRecorder.stop()
         } else {
+            audioPlayer.stop()
             audioRecorder.start(sampleCode: answers["A1"] ?? "")
         }
+    }
+
+    private func toggleAudioPlayback() {
+        guard let url = audioRecorder.audioURL else { return }
+        audioPlayer.toggle(url: url)
     }
 
     private func saveSurvey() {
@@ -1295,6 +1357,7 @@ private struct DurianSurveyView: View {
         if audioRecorder.isRecording {
             audioRecorder.stop()
         }
+        audioPlayer.stop()
         do {
             let url = try DurianSurveyStore.shared.save(
                 answers: answers,
@@ -1666,6 +1729,7 @@ private struct SurveyMetricRow: View {
 
 private struct DurianSurveyRecordDetailView: View {
     let record: DurianSurveyRecord
+    @StateObject private var audioPlayer = SurveyAudioPlayer()
 
     var body: some View {
         Form {
@@ -1675,6 +1739,20 @@ private struct DurianSurveyRecordDetailView: View {
                 SurveyValueRow(title: "Tên địa điểm", value: record.placeName ?? "")
                 SurveyValueRow(title: "Xin phép ghi âm", value: (record.audioConsent ?? false) ? "Có" : "Không")
                 SurveyValueRow(title: "File ghi âm", value: record.audioFile ?? "")
+                if let audioURL = audioURL {
+                    Button(action: { audioPlayer.toggle(url: audioURL) }) {
+                        HStack {
+                            Image(systemName: audioPlayer.isPlaying ? "pause.circle" : "play.circle")
+                            Text(audioPlayer.isPlaying ? "Dừng nghe" : "Nghe lại ghi âm")
+                        }
+                    }
+                    .accessibilityIdentifier("durianSurvey.savedAudioPlayback")
+                }
+                if let errorMessage = audioPlayer.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundColor(Color("DangerColor"))
+                }
             }
 
             ForEach(durianSurveySections) { section in
@@ -1689,6 +1767,13 @@ private struct DurianSurveyRecordDetailView: View {
             }
         }
         .navigationBarTitle("Chi tiết phiếu", displayMode: .inline)
+        .onDisappear {
+            audioPlayer.stop()
+        }
+    }
+
+    private var audioURL: URL? {
+        DurianSurveyStore.shared.audioURL(for: record.audioFile)
     }
 
     private var gpsText: String {
