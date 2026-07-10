@@ -473,7 +473,7 @@
 
   <script>
     const colors = ['#d97b1e', '#2563eb', '#2f7d45', '#7c3aed', '#c23a2b', '#d4a72c', '#667085'];
-    const key = 'durian-survey-preview-records';
+    const key = 'durian-survey-preview-records-v2';
     const sections = [
       ['A. Thông tin chung', [
         ['A1', 'Mã số hộ/vườn', 'text'],
@@ -481,80 +481,47 @@
         ['A3', 'Số điện thoại', 'text'],
         ['A4', 'Địa chỉ (xã, huyện, tỉnh)', 'text'],
         ['A6', 'Diện tích trồng sầu riêng (ha)', 'text'],
-        ['A7', 'Gia đình bắt đầu trồng sầu riêng từ năm nào?', 'text']
+        ['A7', 'Vườn đang lấy mẫu trồng từ năm nào (vườn khoảng bao nhiêu tuổi)?', 'text']
       ]],
       ['B. Đặc điểm vườn', [
-        ['B1', 'Giống sầu riêng đang trồng', 'text'],
-        ['B2', 'Tuổi trung bình của cây (năm)', 'text'],
-        ['B3', 'Khoảng cách trồng', 'text'],
-        ['B4', 'Địa hình vườn', 'choice', ['Bằng', 'Dốc nhẹ', 'Đồi']],
-        ['B5', 'Loại đất', 'choice', ['Bazan', 'Phù sa', 'Xám', 'Khác']],
-        ['B6', 'Trước đây khu đất được sử dụng để trồng gì?', 'text'],
-        ['B7', 'Vườn có hệ thống thoát nước không?', 'yesno']
+        ['B1', 'Vườn hiện đang trồng giống sầu riêng nào?', 'text']
       ]],
-      ['C. Quản lý đất', [
-        ['C1', 'Gia đình có bón vôi không?', 'yesno'],
+      ['C. Phân bón', [
+        ['C1', 'Vườn mình dùng loại phân bón đất gì? (Đạm, Lân, Kali, Tổng hợp, Hữu cơ)', 'text'],
         ['C2', 'Nếu có, lượng bón (kg/cây/năm)', 'text'],
-        ['C3', 'Có sử dụng thạch cao không?', 'yesno'],
-        ['C4', 'Có sử dụng biochar không?', 'yesno'],
-        ['C5', 'Có sử dụng diatomite không?', 'yesno'],
-        ['C6', 'Có sử dụng phân hữu cơ không?', 'yesno'],
-        ['C7', 'Nếu có, loại phân hữu cơ', 'text']
+        ['C3', 'Có sử dụng phân bón lá không?', 'yesno'],
+        ['C4', 'Nếu có dùng loại gì?', 'text'],
+        ['C5', 'Liều lượng phân bón lá như thế nào?', 'text']
       ]],
-      ['D. Phân bón', [
-        ['D1', 'Gia đình bón phân bao nhiêu lần/năm?', 'text'],
-        ['D2', 'Các loại phân NPK thường sử dụng', 'text'],
-        ['D3', 'Có bổ sung Canxi (Ca) không?', 'yesno'],
-        ['D4', 'Có bổ sung Magie (Mg) không?', 'yesno'],
-        ['D5', 'Có bổ sung Silic (Si) không?', 'yesno'],
-        ['D6', 'Có sử dụng phân vi lượng không?', 'yesno'],
-        ['D7', 'Nếu có, gồm những nguyên tố nào?', 'text']
+      ['D. Nước tưới', [
+        ['D1', 'Nguồn nước tưới chính', 'choice', ['Giếng', 'Hồ', 'Sông', 'Khác']],
+        ['D2', 'Phương pháp tưới', 'choice', ['Nhỏ giọt', 'Phun', 'Béc', 'Khác']]
       ]],
-      ['E. Nước tưới', [
-        ['E1', 'Nguồn nước tưới chính', 'choice', ['Giếng', 'Hồ', 'Sông', 'Khác']],
-        ['E2', 'Phương pháp tưới', 'choice', ['Nhỏ giọt', 'Phun', 'Béc', 'Khác']],
-        ['E3', 'Mùa khô tưới bao nhiêu lần/tuần?', 'text']
+      ['E. Ra hoa và quản lý quả (xin thuốc kích mầm/tên/vỏ nếu có)', [
+        ['E1', 'Có sử dụng thuốc kích mầm hoa không?', 'yesno'],
+        ['E2', 'Nếu có, dùng loại gì?', 'text'],
+        ['E3', 'Liều lượng dùng như thế nào?', 'text'],
+        ['E4', 'Dùng thời điểm nào?', 'text'],
+        ['E5', 'Có tỉa quả không?', 'yesno'],
+        ['E6', 'Mỗi cây thường khoảng bao nhiêu quả?', 'text']
       ]],
-      ['F. Ra hoa và quản lý quả', [
-        ['F1', 'Có xử lý ra hoa không?', 'yesno'],
-        ['F2', 'Nếu có, biện pháp xử lý', 'text'],
-        ['F3', 'Có xiết nước không?', 'yesno'],
-        ['F4', 'Có tỉa quả không?', 'yesno'],
-        ['F5', 'Trung bình mỗi cây giữ lại bao nhiêu quả?', 'text'],
-        ['F6', 'Có bao trái không?', 'yesno']
-      ]],
-      ['G. Thuốc BVTV', [
-        ['G1', 'Một năm phun thuốc bao nhiêu lần?', 'text'],
-        ['G2', 'Chủ yếu sử dụng thuốc gì?', 'text'],
-        ['G3', 'Có sử dụng thuốc diệt cỏ không?', 'yesno']
+      ['G. Thuốc BVTV (xin thuốc/tên/vỏ nếu có)', [
+        ['G1', 'Dùng thuốc bảo vệ thực vật gì?', 'text'],
+        ['G2', 'Thời điểm dùng?', 'text'],
+        ['G3', 'Có sử dụng thuốc diệt cỏ không?', 'yesno'],
+        ['G4', 'Nếu có, dùng loại gì?', 'text'],
+        ['G5', 'Liều lượng như thế nào?', 'text']
       ]],
       ['H. Thu hoạch', [
-        ['H1', 'Thường thu hoạch vào tháng nào?', 'text'],
-        ['H2', 'Tiêu chí xác định thời điểm thu hoạch', 'text'],
-        ['H3', 'Năng suất trung bình (kg/cây)', 'text'],
-        ['H4', 'Khối lượng quả trung bình (kg)', 'text']
-      ]],
-      ['I. Môi trường', [
-        ['I1', 'Vườn có gần đường giao thông lớn không?', 'yesno'],
-        ['I2', 'Vườn có gần khu công nghiệp không?', 'yesno'],
-        ['I3', 'Vườn có gần khu khai thác khoáng sản không?', 'yesno'],
-        ['I4', 'Vườn có thường xuyên bị ngập không?', 'yesno']
-      ]],
-      ['J. Lịch sử canh tác', [
-        ['J1', '10 năm gần đây có thay đổi giống cây không?', 'text'],
-        ['J2', 'Đã từng bón bùn ao/bùn sông chưa?', 'yesno'],
-        ['J3', 'Nguồn phân chuồng chủ yếu', 'text'],
-        ['J4', 'Có thường xuyên sử dụng phân lân không?', 'text'],
-        ['J5', 'Đã cải tạo đất bằng vôi/thạch cao/biochar/diatomite từ năm nào?', 'text'],
-        ['J6', '5 năm gần đây có ngập lụt hoặc hạn kéo dài không?', 'text'],
-        ['J7', 'Đã từng phân tích đất hoặc nước chưa?', 'yesno']
+        ['H1', 'Năng suất trung bình (kg/cây)', 'text']
       ]],
       ['K. Lấy mẫu', [
         ['K1', 'Lấy mẫu đất', 'yesno'],
         ['K2', 'Lấy mẫu lá', 'yesno'],
         ['K3', 'Lấy mẫu quả', 'yesno'],
         ['K4', 'Lấy mẫu nước', 'yesno'],
-        ['K5', 'Ghi chú', 'longtext']
+        ['K5', 'Phân bón', 'yesno'],
+        ['K6', 'Kích mầm', 'yesno']
       ]]
     ];
     const questions = sections.flatMap(section => section[1].map(q => ({ section: section[0], id: q[0], label: q[1], type: q[2], options: q[3] || [] })));
@@ -566,6 +533,7 @@
       audioConsent: false,
       recording: false,
       audioFile: '',
+      audioPlaying: false,
       sample: { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' },
       samplePhoto: '',
       selected: null
@@ -636,7 +604,7 @@
           <div class="section-title">A5. Tọa độ GPS</div>
           <div class="section-body">
             <div class="button-row">
-              <button class="primary" id="gpsBtn">⌖ Lấy GPS</button>
+              <button class="primary" id="gpsBtn">⌖ Cập nhật location</button>
               <span class="status">${state.gps ? `Lat ${state.gps.lat}, Long ${state.gps.lon}, ±${state.gps.acc}m` : 'Chưa có GPS'}</span>
             </div>
           </div>
@@ -647,6 +615,7 @@
             <label><input id="audioConsent" type="checkbox" ${state.audioConsent ? 'checked' : ''}> Đã xin phép ghi âm</label>
             <div class="button-row" style="margin-top:10px">
               <button id="audioBtn" class="${state.recording ? 'danger' : ''}" ${state.audioConsent ? '' : 'disabled'}>${state.recording ? '■ Dừng ghi âm' : '◉ Ghi âm'}</button>
+              ${state.audioFile ? `<button id="audioPlayback">${state.audioPlaying ? 'Dừng nghe' : 'Nghe lại ghi âm'}</button>` : ''}
               <span class="status">${state.audioFile ? `Audio: ${escapeHtml(state.audioFile)}` : 'Preview mô phỏng file .m4a'}</span>
             </div>
           </div>
@@ -717,6 +686,7 @@
         renderForm();
       });
       document.getElementById('audioBtn').addEventListener('click', toggleAudio);
+      document.getElementById('audioPlayback')?.addEventListener('click', toggleAudioPlayback);
       document.getElementById('sampleID').addEventListener('input', event => state.sample.id = event.target.value);
       document.getElementById('sampleSite').addEventListener('input', event => state.sample.site = event.target.value);
       document.getElementById('sampleImportant').addEventListener('click', () => {
@@ -762,7 +732,7 @@
           <div class="row">
             <label for="sampleSite">Site (GPS)</label>
             <input id="sampleSite" value="${escapeHtml(s.site)}" placeholder="Tự lấy GPS hoặc nhập tay">
-            <div class="status">${state.gps ? `GPS hiện tại: ${state.gps.lat}, ${state.gps.lon}, ±${state.gps.acc}m` : 'Bấm Lấy GPS ở trên để tự điền site.'}</div>
+            <div class="status">${state.gps ? `GPS hiện tại: ${state.gps.lat}, ${state.gps.lon}, ±${state.gps.acc}m` : 'Bấm Cập nhật location ở trên để tự điền site.'}</div>
           </div>
           <button class="capture-btn" id="captureSample">📷 CHỤP MẪU</button>
           ${state.samplePhoto ? `<div class="sample-photo"><div class="sample-thumb">✓</div><div><b>Đã lưu ảnh mẫu</b><div class="status">${escapeHtml(state.samplePhoto)}</div></div></div>` : ''}
@@ -793,10 +763,16 @@
     function toggleAudio() {
       if (!state.audioConsent) return;
       state.recording = !state.recording;
+      if (state.recording) state.audioPlaying = false;
       if (!state.recording && !state.audioFile) {
         const code = (state.answers.A1 || 'survey').replace(/[^A-Za-z0-9_-]/g, '_');
         state.audioFile = `audio/${code}_audio_${new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)}.m4a`;
       }
+      renderForm();
+    }
+    function toggleAudioPlayback() {
+      if (!state.audioFile) return;
+      state.audioPlaying = !state.audioPlaying;
       renderForm();
     }
     function captureSamplePhoto() {
@@ -812,6 +788,7 @@
       if (state.recording) toggleAudio();
       const record = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        formVersion: 2,
         createdAt: new Date().toISOString(),
         gps: state.gps,
         audioConsent: state.audioConsent,
@@ -832,6 +809,7 @@
       state.audioConsent = false;
       state.recording = false;
       state.audioFile = '';
+      state.audioPlaying = false;
       state.sample = { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' };
       state.samplePhoto = '';
       if (keepTab) render();
@@ -920,16 +898,21 @@
           <div><b>Thời gian</b>${new Date(record.createdAt).toLocaleString('vi-VN')}</div>
           <div><b>GPS</b>${record.gps ? `${record.gps.lat}, ${record.gps.lon}, ±${record.gps.acc}m` : 'Chưa có'}</div>
           <div><b>Xin phép ghi âm</b>${record.audioConsent ? 'Có' : 'Không'}</div>
-          <div><b>File audio</b>${escapeHtml(record.audioFile || 'Chưa có')}</div>
+          <div><b>File audio</b>${escapeHtml(record.audioFile || 'Chưa có')}${record.audioFile ? `<br><button id="detailAudioPlayback">${state.audioPlaying ? 'Dừng nghe' : 'Nghe lại ghi âm'}</button>` : ''}</div>
           <div><b>Ảnh mẫu</b>${escapeHtml(record.samplePhoto || 'Chưa có')}</div>
           ${questions.map(question => `<div><b>${question.id}. ${escapeHtml(question.label)}</b>${escapeHtml(answer(record, question.id) || 'Chưa nhập')}</div>`).join('')}
         </div>`;
+      document.getElementById('detailAudioPlayback')?.addEventListener('click', () => {
+        state.audioPlaying = !state.audioPlaying;
+        renderDetail();
+      });
     }
 
     function csvRows() {
-      const header = ['survey_id', 'created_at', 'latitude', 'longitude', 'gps_accuracy_m', 'audio_consent', 'audio_file', 'sample_photo', ...questions.map(item => `${item.id} ${item.label}`)];
+      const header = ['survey_id', 'form_version', 'created_at', 'latitude', 'longitude', 'gps_accuracy_m', 'audio_consent', 'audio_file', 'sample_photo', ...questions.map(item => `${item.id} ${item.label}`)];
       const rows = state.records.slice().reverse().map(record => [
         record.id,
+        record.formVersion || 2,
         record.createdAt,
         record.gps?.lat || '',
         record.gps?.lon || '',
@@ -966,23 +949,25 @@
       state.records = [
         {
           id: 'demo-1',
+          formVersion: 2,
           createdAt: new Date(Date.now() - 3600_000).toISOString(),
           gps: { lat: '10.78392100', lon: '106.69540200', acc: 8 },
           audioConsent: true,
           audioFile: 'audio/M01_audio_20260708_143000.m4a',
           sample: { id: 'M01-ĐY-UP', important: true, type: 'Địa y', direction: 'Upslope', site: '10.78392100, 106.69540200' },
           samplePhoto: 'samples/M01-DY-UP_important_upslope_20260708143000.jpg',
-          answers: { A1: 'M01', A2: 'Nguyễn Văn A', A4: 'Cai Lậy, Tiền Giang', B1: 'Ri6', B4: 'Bằng', B5: 'Phù sa', B7: 'Có', C1: 'Có', C3: 'Không', D3: 'Có', D4: 'Có', E1: 'Giếng', E2: 'Béc', F1: 'Có', G3: 'Không', I1: 'Không', J2: 'Không', K1: 'Có', K3: 'Có' }
+          answers: { A1: 'M01', A2: 'Nguyễn Văn A', A4: 'Cai Lậy, Tiền Giang', A7: '2016, khoảng 10 năm', B1: 'Ri6', C1: 'NPK tổng hợp, hữu cơ', C2: '35', C3: 'Có', C4: 'Canxi Bo', C5: '2 lần/tháng', D1: 'Giếng', D2: 'Béc', E1: 'Có', E2: 'Kích mầm MKP', E3: 'Theo hướng dẫn bao bì', E4: 'Trước ra hoa', E5: 'Có', E6: '55', G1: 'Thuốc nấm, rầy', G2: 'Sau mưa và trước xổ nhụy', G3: 'Không', H1: '85', K1: 'Có', K3: 'Có', K5: 'Có', K6: 'Có' }
         },
         {
           id: 'demo-2',
+          formVersion: 2,
           createdAt: new Date(Date.now() - 7200_000).toISOString(),
           gps: { lat: '11.00231200', lon: '107.23880100', acc: 11 },
           audioConsent: false,
           audioFile: '',
           sample: { id: 'M02-ĐY-DOWN', important: false, type: 'Địa y', direction: 'Downslope', site: '11.00231200, 107.23880100' },
           samplePhoto: 'samples/M02-DY-DOWN_downslope_20260708140000.jpg',
-          answers: { A1: 'M02', A2: 'Trần Thị B', A4: 'Đạ Huoai, Lâm Đồng', B1: 'Monthong', B4: 'Dốc nhẹ', B5: 'Bazan', B7: 'Có', C1: 'Không', C3: 'Không', D3: 'Có', D4: 'Không', E1: 'Hồ', E2: 'Nhỏ giọt', F1: 'Không', G3: 'Có', I1: 'Có', J2: 'Không', K1: 'Có', K2: 'Có' }
+          answers: { A1: 'M02', A2: 'Trần Thị B', A4: 'Đạ Huoai, Lâm Đồng', A7: '2019, khoảng 7 năm', B1: 'Monthong', C1: 'Đạm, Kali', C2: '28', C3: 'Không', D1: 'Hồ', D2: 'Nhỏ giọt', E1: 'Không', E5: 'Có', E6: '45', G1: 'Thuốc sâu sinh học', G2: 'Khi phát hiện sâu bệnh', G3: 'Có', G4: 'Glyphosate', G5: 'Pha loãng theo nhãn', H1: '70', K1: 'Có', K2: 'Có', K5: 'Không', K6: 'Không' }
         }
       ];
       state.selected = 'demo-1';
