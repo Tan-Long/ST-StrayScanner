@@ -451,48 +451,44 @@ private let durianSurveySections: [DurianSurveySection] = [
         DurianSurveyQuestion(id: "A2", text: "Họ và tên chủ vườn", kind: .text),
         DurianSurveyQuestion(id: "A3", text: "Số điện thoại", kind: .text),
         DurianSurveyQuestion(id: "A4", text: "Địa chỉ (xã, huyện, tỉnh)", kind: .text),
-        DurianSurveyQuestion(id: "A6", text: "Diện tích trồng sầu riêng (ha)", kind: .text),
-        DurianSurveyQuestion(id: "A7", text: "Vườn đang lấy mẫu trồng từ năm nào (vườn khoảng bao nhiêu tuổi)?", kind: .text)
+        DurianSurveyQuestion(id: "A5", text: "Diện tích trồng sầu riêng (ha)", kind: .text),
+        DurianSurveyQuestion(id: "A6", text: "Gia đình bắt đầu trồng sầu riêng từ năm nào?", kind: .text)
     ]),
     DurianSurveySection(title: "B. Đặc điểm vườn", questions: [
-        DurianSurveyQuestion(id: "B1", text: "Vườn hiện đang trồng giống sầu riêng nào?", kind: .text)
+        DurianSurveyQuestion(id: "B1", text: "Giống sầu riêng đang trồng", kind: .text)
     ]),
     DurianSurveySection(title: "C. Phân bón", questions: [
-        DurianSurveyQuestion(id: "C1", text: "Vườn mình dùng loại phân bón đất gì? (Đạm, Lân, Kali, Tổng hợp, Hữu cơ)", kind: .text),
-        DurianSurveyQuestion(id: "C2", text: "Nếu có, lượng bón (kg/cây/năm)", kind: .text),
-        DurianSurveyQuestion(id: "C3", text: "Có sử dụng phân bón lá không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "C4", text: "Nếu có dùng loại gì?", kind: .text),
-        DurianSurveyQuestion(id: "C5", text: "Liều lượng phân bón lá như thế nào?", kind: .text)
+        DurianSurveyQuestion(id: "C1", text: "Phân bón NPK sử dụng cho đất là loại nào?", kind: .text),
+        DurianSurveyQuestion(id: "C2", text: "Thời điểm/tần suất bón NPK", kind: .text),
+        DurianSurveyQuestion(id: "C3", text: "Lượng bón NPK (kg/cây/năm)", kind: .text),
+        DurianSurveyQuestion(id: "C4", text: "Có sử dụng phân bón trung lượng, vi lượng không?", kind: .text),
+        DurianSurveyQuestion(id: "C5", text: "Thời điểm/tần suất bón trung lượng, vi lượng", kind: .text),
+        DurianSurveyQuestion(id: "C6", text: "Lượng bón trung lượng, vi lượng (kg/cây/năm)", kind: .text),
+        DurianSurveyQuestion(id: "C7", text: "Có sử dụng phân bón lá không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "C8", text: "Thời điểm/tần suất bón lá", kind: .text),
+        DurianSurveyQuestion(id: "C9", text: "Lượng bón lá (kg/cây/năm)", kind: .text)
     ]),
     DurianSurveySection(title: "D. Nước tưới", questions: [
-        DurianSurveyQuestion(id: "D1", text: "Nguồn nước tưới chính", kind: .choice(["Giếng", "Hồ", "Sông", "Khác"])),
-        DurianSurveyQuestion(id: "D2", text: "Phương pháp tưới", kind: .choice(["Nhỏ giọt", "Phun", "Béc", "Khác"]))
+        DurianSurveyQuestion(id: "D2", text: "Nguồn nước tưới chính", kind: .text)
     ]),
-    DurianSurveySection(title: "E. Ra hoa và quản lý quả (xin thuốc kích mầm/tên/vỏ nếu có)", questions: [
+    DurianSurveySection(title: "E. Ra hoa, quản lý quả và thuốc BVTV", questions: [
         DurianSurveyQuestion(id: "E1", text: "Có sử dụng thuốc kích mầm hoa không?", kind: .yesNo),
         DurianSurveyQuestion(id: "E2", text: "Nếu có, dùng loại gì?", kind: .text),
         DurianSurveyQuestion(id: "E3", text: "Liều lượng dùng như thế nào?", kind: .text),
         DurianSurveyQuestion(id: "E4", text: "Dùng thời điểm nào?", kind: .text),
         DurianSurveyQuestion(id: "E5", text: "Có tỉa quả không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "E6", text: "Mỗi cây thường khoảng bao nhiêu quả?", kind: .text)
-    ]),
-    DurianSurveySection(title: "G. Thuốc BVTV (xin thuốc/tên/vỏ nếu có)", questions: [
-        DurianSurveyQuestion(id: "G1", text: "Dùng thuốc bảo vệ thực vật gì?", kind: .text),
-        DurianSurveyQuestion(id: "G2", text: "Thời điểm dùng?", kind: .text),
-        DurianSurveyQuestion(id: "G3", text: "Có sử dụng thuốc diệt cỏ không?", kind: .yesNo),
-        DurianSurveyQuestion(id: "G4", text: "Nếu có, dùng loại gì?", kind: .text),
-        DurianSurveyQuestion(id: "G5", text: "Liều lượng như thế nào?", kind: .text)
+        DurianSurveyQuestion(id: "E6", text: "Trung bình mỗi cây giữ lại bao nhiêu quả?", kind: .text),
+        DurianSurveyQuestion(id: "E7", text: "Dùng thuốc bảo vệ thực vật gì?", kind: .text),
+        DurianSurveyQuestion(id: "E8", text: "Thời điểm dùng thuốc bảo vệ thực vật?", kind: .text),
+        DurianSurveyQuestion(id: "E9", text: "Có sử dụng thuốc diệt cỏ không?", kind: .yesNo),
+        DurianSurveyQuestion(id: "E10", text: "Nếu có, dùng loại gì?", kind: .text),
+        DurianSurveyQuestion(id: "E11", text: "Liều lượng như thế nào?", kind: .text)
     ]),
     DurianSurveySection(title: "H. Thu hoạch", questions: [
-        DurianSurveyQuestion(id: "H1", text: "Năng suất trung bình (kg/cây)", kind: .text)
+        DurianSurveyQuestion(id: "H3", text: "Năng suất trung bình (kg/cây)", kind: .text)
     ]),
-    DurianSurveySection(title: "K. Lấy mẫu", questions: [
-        DurianSurveyQuestion(id: "K1", text: "Lấy mẫu đất", kind: .yesNo),
-        DurianSurveyQuestion(id: "K2", text: "Lấy mẫu lá", kind: .yesNo),
-        DurianSurveyQuestion(id: "K3", text: "Lấy mẫu quả", kind: .yesNo),
-        DurianSurveyQuestion(id: "K4", text: "Lấy mẫu nước", kind: .yesNo),
-        DurianSurveyQuestion(id: "K5", text: "Phân bón", kind: .yesNo),
-        DurianSurveyQuestion(id: "K6", text: "Kích mầm", kind: .yesNo)
+    DurianSurveySection(title: "K. Ghi chú", questions: [
+        DurianSurveyQuestion(id: "K5", text: "Ghi chú", kind: .text)
     ])
 ]
 
@@ -641,7 +637,7 @@ private enum DurianSurveyStats {
 
 final class DurianSurveyStore {
     static let shared = DurianSurveyStore()
-    private static let currentFormVersion = 2
+    private static let currentFormVersion = 3
 
     private let fileManager = FileManager.default
     private let surveysDirectory: URL
@@ -1131,6 +1127,7 @@ private struct DurianSurveyView: View {
     @State private var answers: [String: String] = [:]
     @State private var currentLocation: CLLocation?
     @State private var savedFilename: String?
+    @State private var missingFieldsNotice: String?
     @State private var saveError: String?
     @State private var savedRecords: [DurianSurveyRecord] = []
     @State private var summary = DurianSurveyStats.make(records: [])
@@ -1140,6 +1137,7 @@ private struct DurianSurveyView: View {
     var body: some View {
         Form {
             dashboardSection
+            progressSection
             gpsSection
             audioSection
 
@@ -1157,16 +1155,33 @@ private struct DurianSurveyView: View {
             Section {
                 Button(action: saveSurvey) {
                     HStack {
+                        Spacer()
                         Image(systemName: "tray.and.arrow.down")
                         Text("Lưu phiếu offline")
+                            .fontWeight(.semibold)
+                        Spacer()
                     }
+                    .padding(.vertical, 8)
                 }
+                .background(Color("TextColor"))
+                .foregroundColor(Color("LightColor"))
+                .cornerRadius(10)
                 .accessibilityIdentifier("durianSurvey.save")
 
                 if let savedFilename = savedFilename {
                     Text("Đã lưu: \(savedFilename)")
                         .font(.footnote)
                         .foregroundColor(.secondary)
+                }
+                if let missingFieldsNotice = missingFieldsNotice {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(missingFieldsNotice)
+                            .font(.footnote)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.vertical, 4)
                 }
             }
 
@@ -1200,6 +1215,7 @@ private struct DurianSurveyView: View {
         .navigationBarItems(trailing: Button("Mới") {
             answers = [:]
             savedFilename = nil
+            missingFieldsNotice = nil
             audioPlayer.stop()
             audioRecorder.reset(deleteFile: true)
             refreshLocation()
@@ -1247,8 +1263,46 @@ private struct DurianSurveyView: View {
         }
     }
 
+    private var progressSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tiến độ nhập liệu")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                        Text("\(answeredQuestionCount)/\(durianSurveyQuestions.count) trường đã nhập")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Text("\(completionPercentText)")
+                        .font(.headline)
+                        .monospacedDigit()
+                        .foregroundColor(Color("TextColor"))
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.16))
+                        Capsule()
+                            .fill(Color.green.opacity(0.72))
+                            .frame(width: proxy.size.width * CGFloat(completionFraction))
+                    }
+                }
+                .frame(height: 8)
+
+                Text(missingQuestionCount == 0 ? "Đủ các trường trong file check." : "Còn \(missingQuestionCount) trường chưa nhập. Vẫn lưu được nếu không hỏi được.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
     private var gpsSection: some View {
-        Section(header: Text("A5. Tọa độ GPS")) {
+        Section(header: Text("Tọa độ GPS")) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(gpsText)
                     .font(.body)
@@ -1319,10 +1373,32 @@ private struct DurianSurveyView: View {
         )
     }
 
+    private var answeredQuestionCount: Int {
+        durianSurveyQuestions.filter { question in
+            !answers[question.id, default: ""].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }.count
+    }
+
+    private var missingQuestionCount: Int {
+        max(durianSurveyQuestions.count - answeredQuestionCount, 0)
+    }
+
+    private var completionFraction: Double {
+        guard !durianSurveyQuestions.isEmpty else { return 0 }
+        return Double(answeredQuestionCount) / Double(durianSurveyQuestions.count)
+    }
+
+    private var completionPercentText: String {
+        String(format: "%.0f%%", completionFraction * 100)
+    }
+
     private func binding(for id: String) -> Binding<String> {
         Binding(
             get: { answers[id, default: ""] },
-            set: { answers[id] = $0 }
+            set: {
+                answers[id] = $0
+                missingFieldsNotice = nil
+            }
         )
     }
 
@@ -1367,6 +1443,7 @@ private struct DurianSurveyView: View {
                 audioFile: audioRecorder.relativeAudioPath
             )
             savedFilename = url.lastPathComponent
+            missingFieldsNotice = missingFieldsText()
             audioRecorder.clearSavedReference()
             loadSavedRecords()
         } catch {
@@ -1379,6 +1456,17 @@ private struct DurianSurveyView: View {
         savedRecords = records
         summary = DurianSurveyStats.make(records: records)
         try? DurianSurveyStore.shared.prepareExportFiles()
+    }
+
+    private func missingFieldsText() -> String? {
+        let missing = durianSurveyQuestions
+            .filter { question in
+                answers[question.id, default: ""].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+            .map { "\($0.id). \($0.text)" }
+
+        guard !missing.isEmpty else { return nil }
+        return "Nhắc thôi, phiếu đã lưu. Còn thiếu \(missing.count) trường:\n" + missing.joined(separator: "\n")
     }
 
     private func recordTitle(_ record: DurianSurveyRecord) -> String {
@@ -1399,9 +1487,20 @@ private struct DurianSurveyQuestionField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("\(question.id). \(question.text)")
-                .font(.body)
-                .foregroundColor(Color("TextColor"))
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(question.id)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .foregroundColor(.green)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.green.opacity(0.12))
+                    .cornerRadius(6)
+                Text(question.text)
+                    .font(.body)
+                    .foregroundColor(Color("TextColor"))
+            }
 
             switch question.kind {
             case .text:

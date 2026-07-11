@@ -151,6 +151,42 @@
       color: #2c3a2a;
     }
     .section-body { padding: 12px; }
+    .progress-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfa;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .progress-title {
+      font-weight: 750;
+      font-size: 14px;
+    }
+    .progress-value {
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .progress-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e5ebe2;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--green);
+    }
     .row {
       display: grid;
       gap: 6px;
@@ -161,6 +197,26 @@
       font-size: 13px;
       font-weight: 650;
     }
+    .field-label {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+    .qid {
+      flex: 0 0 auto;
+      min-width: 32px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: var(--green);
+      background: #e7f0e6;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+    }
     input, select, textarea {
       width: 100%;
       border: 1px solid var(--line);
@@ -169,6 +225,13 @@
       padding: 9px 10px;
       background: white;
       color: var(--text);
+    }
+    input[type="checkbox"] {
+      width: auto;
+      min-height: auto;
+      padding: 0;
+      accent-color: var(--green);
+      margin-right: 8px;
     }
     textarea { min-height: 72px; resize: vertical; }
     .button-row {
@@ -181,6 +244,12 @@
       font-size: 12px;
       color: var(--muted);
       line-height: 1.35;
+    }
+    .notice {
+      color: #9a5b00;
+      background: #fff7e8;
+      border-top: 1px solid #efd8ad;
+      white-space: pre-line;
     }
     .sample-preview {
       position: relative;
@@ -473,55 +542,51 @@
 
   <script>
     const colors = ['#d97b1e', '#2563eb', '#2f7d45', '#7c3aed', '#c23a2b', '#d4a72c', '#667085'];
-    const key = 'durian-survey-preview-records-v2';
+    const key = 'durian-survey-preview-records-v3';
     const sections = [
       ['A. Thông tin chung', [
         ['A1', 'Mã số hộ/vườn', 'text'],
         ['A2', 'Họ và tên chủ vườn', 'text'],
         ['A3', 'Số điện thoại', 'text'],
         ['A4', 'Địa chỉ (xã, huyện, tỉnh)', 'text'],
-        ['A6', 'Diện tích trồng sầu riêng (ha)', 'text'],
-        ['A7', 'Vườn đang lấy mẫu trồng từ năm nào (vườn khoảng bao nhiêu tuổi)?', 'text']
+        ['A5', 'Diện tích trồng sầu riêng (ha)', 'text'],
+        ['A6', 'Gia đình bắt đầu trồng sầu riêng từ năm nào?', 'text']
       ]],
       ['B. Đặc điểm vườn', [
-        ['B1', 'Vườn hiện đang trồng giống sầu riêng nào?', 'text']
+        ['B1', 'Giống sầu riêng đang trồng', 'text']
       ]],
       ['C. Phân bón', [
-        ['C1', 'Vườn mình dùng loại phân bón đất gì? (Đạm, Lân, Kali, Tổng hợp, Hữu cơ)', 'text'],
-        ['C2', 'Nếu có, lượng bón (kg/cây/năm)', 'text'],
-        ['C3', 'Có sử dụng phân bón lá không?', 'yesno'],
-        ['C4', 'Nếu có dùng loại gì?', 'text'],
-        ['C5', 'Liều lượng phân bón lá như thế nào?', 'text']
+        ['C1', 'Phân bón NPK sử dụng cho đất là loại nào?', 'text'],
+        ['C2', 'Thời điểm/tần suất bón NPK', 'text'],
+        ['C3', 'Lượng bón NPK (kg/cây/năm)', 'text'],
+        ['C4', 'Có sử dụng phân bón trung lượng, vi lượng không?', 'text'],
+        ['C5', 'Thời điểm/tần suất bón trung lượng, vi lượng', 'text'],
+        ['C6', 'Lượng bón trung lượng, vi lượng (kg/cây/năm)', 'text'],
+        ['C7', 'Có sử dụng phân bón lá không?', 'yesno'],
+        ['C8', 'Thời điểm/tần suất bón lá', 'text'],
+        ['C9', 'Lượng bón lá (kg/cây/năm)', 'text']
       ]],
       ['D. Nước tưới', [
-        ['D1', 'Nguồn nước tưới chính', 'choice', ['Giếng', 'Hồ', 'Sông', 'Khác']],
-        ['D2', 'Phương pháp tưới', 'choice', ['Nhỏ giọt', 'Phun', 'Béc', 'Khác']]
+        ['D2', 'Nguồn nước tưới chính', 'text']
       ]],
-      ['E. Ra hoa và quản lý quả (xin thuốc kích mầm/tên/vỏ nếu có)', [
+      ['E. Ra hoa, quản lý quả và thuốc BVTV', [
         ['E1', 'Có sử dụng thuốc kích mầm hoa không?', 'yesno'],
         ['E2', 'Nếu có, dùng loại gì?', 'text'],
         ['E3', 'Liều lượng dùng như thế nào?', 'text'],
         ['E4', 'Dùng thời điểm nào?', 'text'],
         ['E5', 'Có tỉa quả không?', 'yesno'],
-        ['E6', 'Mỗi cây thường khoảng bao nhiêu quả?', 'text']
-      ]],
-      ['G. Thuốc BVTV (xin thuốc/tên/vỏ nếu có)', [
-        ['G1', 'Dùng thuốc bảo vệ thực vật gì?', 'text'],
-        ['G2', 'Thời điểm dùng?', 'text'],
-        ['G3', 'Có sử dụng thuốc diệt cỏ không?', 'yesno'],
-        ['G4', 'Nếu có, dùng loại gì?', 'text'],
-        ['G5', 'Liều lượng như thế nào?', 'text']
+        ['E6', 'Trung bình mỗi cây giữ lại bao nhiêu quả?', 'text'],
+        ['E7', 'Dùng thuốc bảo vệ thực vật gì?', 'text'],
+        ['E8', 'Thời điểm dùng thuốc bảo vệ thực vật?', 'text'],
+        ['E9', 'Có sử dụng thuốc diệt cỏ không?', 'yesno'],
+        ['E10', 'Nếu có, dùng loại gì?', 'text'],
+        ['E11', 'Liều lượng như thế nào?', 'text']
       ]],
       ['H. Thu hoạch', [
-        ['H1', 'Năng suất trung bình (kg/cây)', 'text']
+        ['H3', 'Năng suất trung bình (kg/cây)', 'text']
       ]],
-      ['K. Lấy mẫu', [
-        ['K1', 'Lấy mẫu đất', 'yesno'],
-        ['K2', 'Lấy mẫu lá', 'yesno'],
-        ['K3', 'Lấy mẫu quả', 'yesno'],
-        ['K4', 'Lấy mẫu nước', 'yesno'],
-        ['K5', 'Phân bón', 'yesno'],
-        ['K6', 'Kích mầm', 'yesno']
+      ['K. Ghi chú', [
+        ['K5', 'Ghi chú', 'text']
       ]]
     ];
     const questions = sections.flatMap(section => section[1].map(q => ({ section: section[0], id: q[0], label: q[1], type: q[2], options: q[3] || [] })));
@@ -534,6 +599,7 @@
       recording: false,
       audioFile: '',
       audioPlaying: false,
+      missingNotice: '',
       sample: { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' },
       samplePhoto: '',
       selected: null
@@ -600,8 +666,9 @@
         </section>
       `).join('');
       screen.innerHTML = `
+        ${progressHtml()}
         <section class="section">
-          <div class="section-title">A5. Tọa độ GPS</div>
+          <div class="section-title">Tọa độ GPS</div>
           <div class="section-body">
             <div class="button-row">
               <button class="primary" id="gpsBtn">⌖ Cập nhật location</button>
@@ -627,15 +694,32 @@
             <button class="primary" id="saveBtn">▣ Lưu phiếu offline</button>
             <button id="newBtn">＋ Phiếu mới</button>
           </div>
+          ${state.missingNotice ? `<div class="section-body status notice">${escapeHtml(state.missingNotice)}</div>` : ''}
         </section>
       `;
       bindForm();
+    }
+    function progressHtml() {
+      const answered = questions.filter(item => (state.answers[item.id] || '').trim()).length;
+      const pct = questions.length ? Math.round(answered / questions.length * 100) : 0;
+      const missing = questions.length - answered;
+      return `<div class="progress-card">
+        <div class="progress-head">
+          <div>
+            <div class="progress-title">Tiến độ nhập liệu</div>
+            <div class="status">${answered}/${questions.length} trường đã nhập</div>
+          </div>
+          <div class="progress-value">${pct}%</div>
+        </div>
+        <div class="progress-bar"><span style="width:${pct}%"></span></div>
+        <div class="status">${missing === 0 ? 'Đủ các trường trong file check.' : `Còn ${missing} trường chưa nhập. Vẫn lưu được nếu không hỏi được.`}</div>
+      </div>`;
     }
     function fieldHtml(question) {
       const value = state.answers[question.id] || '';
       if (question.type === 'yesno') {
         return `<div class="row">
-          <label>${question.id}. ${escapeHtml(question.label)}</label>
+          <div class="field-label"><span class="qid">${question.id}</span><span>${escapeHtml(question.label)}</span></div>
           <div class="yesno-grid">
             ${yesNoButton(question.id, 'Có', value)}
             ${yesNoButton(question.id, 'Không', value)}
@@ -645,7 +729,7 @@
       if (question.type === 'choice') {
         const options = question.options;
         return `<div class="row">
-          <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+          <label class="field-label" for="${question.id}"><span class="qid">${question.id}</span><span>${escapeHtml(question.label)}</span></label>
           <select id="${question.id}" data-id="${question.id}">
             <option value="">Chưa chọn</option>
             ${options.map(opt => `<option ${value === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
@@ -654,12 +738,12 @@
       }
       if (question.type === 'longtext') {
         return `<div class="row">
-          <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+          <label class="field-label" for="${question.id}"><span class="qid">${question.id}</span><span>${escapeHtml(question.label)}</span></label>
           <textarea id="${question.id}" data-id="${question.id}">${escapeHtml(value)}</textarea>
         </div>`;
       }
       return `<div class="row">
-        <label for="${question.id}">${question.id}. ${escapeHtml(question.label)}</label>
+        <label class="field-label" for="${question.id}"><span class="qid">${question.id}</span><span>${escapeHtml(question.label)}</span></label>
         <input id="${question.id}" data-id="${question.id}" value="${escapeHtml(value)}">
       </div>`;
     }
@@ -670,10 +754,12 @@
     function bindForm() {
       document.querySelectorAll('[data-id]').forEach(input => input.addEventListener('input', event => {
         state.answers[event.target.dataset.id] = event.target.value;
+        state.missingNotice = '';
       }));
       document.querySelectorAll('[data-yesno]').forEach(btn => btn.addEventListener('click', event => {
         const [id, value] = event.currentTarget.dataset.yesno.split(':');
         state.answers[id] = state.answers[id] === value ? '' : value;
+        state.missingNotice = '';
         renderForm();
       }));
       document.getElementById('gpsBtn').addEventListener('click', takeGps);
@@ -788,7 +874,7 @@
       if (state.recording) toggleAudio();
       const record = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        formVersion: 2,
+        formVersion: 3,
         createdAt: new Date().toISOString(),
         gps: state.gps,
         audioConsent: state.audioConsent,
@@ -799,6 +885,7 @@
       };
       state.records.unshift(record);
       state.selected = record.id;
+      state.missingNotice = missingFieldsText();
       saveRecords();
       newForm(false);
       setTab('saved');
@@ -810,6 +897,7 @@
       state.recording = false;
       state.audioFile = '';
       state.audioPlaying = false;
+      if (keepTab) state.missingNotice = '';
       state.sample = { id: 'TC-001-1.1', important: false, type: 'Địa y', direction: 'Upslope', site: '' };
       state.samplePhoto = '';
       if (keepTab) render();
@@ -912,7 +1000,7 @@
       const header = ['survey_id', 'form_version', 'created_at', 'latitude', 'longitude', 'gps_accuracy_m', 'audio_consent', 'audio_file', 'sample_photo', ...questions.map(item => `${item.id} ${item.label}`)];
       const rows = state.records.slice().reverse().map(record => [
         record.id,
-        record.formVersion || 2,
+        record.formVersion || 3,
         record.createdAt,
         record.gps?.lat || '',
         record.gps?.lon || '',
@@ -945,29 +1033,35 @@
       a.click();
       URL.revokeObjectURL(url);
     }
+    function missingFieldsText() {
+      const missing = questions
+        .filter(item => !(state.answers[item.id] || '').trim())
+        .map(item => `${item.id}. ${item.label}`);
+      return missing.length ? `Nhắc thôi, phiếu đã lưu. Còn thiếu ${missing.length} trường:\n${missing.join('\n')}` : '';
+    }
     function seed() {
       state.records = [
         {
           id: 'demo-1',
-          formVersion: 2,
+          formVersion: 3,
           createdAt: new Date(Date.now() - 3600_000).toISOString(),
           gps: { lat: '10.78392100', lon: '106.69540200', acc: 8 },
           audioConsent: true,
           audioFile: 'audio/M01_audio_20260708_143000.m4a',
           sample: { id: 'M01-ĐY-UP', important: true, type: 'Địa y', direction: 'Upslope', site: '10.78392100, 106.69540200' },
           samplePhoto: 'samples/M01-DY-UP_important_upslope_20260708143000.jpg',
-          answers: { A1: 'M01', A2: 'Nguyễn Văn A', A4: 'Cai Lậy, Tiền Giang', A7: '2016, khoảng 10 năm', B1: 'Ri6', C1: 'NPK tổng hợp, hữu cơ', C2: '35', C3: 'Có', C4: 'Canxi Bo', C5: '2 lần/tháng', D1: 'Giếng', D2: 'Béc', E1: 'Có', E2: 'Kích mầm MKP', E3: 'Theo hướng dẫn bao bì', E4: 'Trước ra hoa', E5: 'Có', E6: '55', G1: 'Thuốc nấm, rầy', G2: 'Sau mưa và trước xổ nhụy', G3: 'Không', H1: '85', K1: 'Có', K3: 'Có', K5: 'Có', K6: 'Có' }
+          answers: { A1: 'V1.C1', A2: 'Chú Nguyễn Văn Bảy PH5', A4: 'Đam Rông 3, Lâm Đồng', A5: '6ha', A6: '2019', B1: 'Thái', C1: 'NPK tỷ lệ 11.12.18', C2: 'Bón ngày 60 chu kì ra hoa đậu quả', C3: '80 cây 1 bao mỗi nửa tháng', C4: 'Canxi bo, 3, 6, 15', C5: '80 ngày', C7: 'Không', D2: 'Nước suối', E1: 'Có', E5: 'Có', E6: '40-50 trái', E7: 'Diệt nấm, rệp', E9: 'Không', H3: '1 tạ/cây', K5: 'Vườn trồng xen café, chanh, thanh long, chôm chôm' }
         },
         {
           id: 'demo-2',
-          formVersion: 2,
+          formVersion: 3,
           createdAt: new Date(Date.now() - 7200_000).toISOString(),
           gps: { lat: '11.00231200', lon: '107.23880100', acc: 11 },
           audioConsent: false,
           audioFile: '',
           sample: { id: 'M02-ĐY-DOWN', important: false, type: 'Địa y', direction: 'Downslope', site: '11.00231200, 107.23880100' },
           samplePhoto: 'samples/M02-DY-DOWN_downslope_20260708140000.jpg',
-          answers: { A1: 'M02', A2: 'Trần Thị B', A4: 'Đạ Huoai, Lâm Đồng', A7: '2019, khoảng 7 năm', B1: 'Monthong', C1: 'Đạm, Kali', C2: '28', C3: 'Không', D1: 'Hồ', D2: 'Nhỏ giọt', E1: 'Không', E5: 'Có', E6: '45', G1: 'Thuốc sâu sinh học', G2: 'Khi phát hiện sâu bệnh', G3: 'Có', G4: 'Glyphosate', G5: 'Pha loãng theo nhãn', H1: '70', K1: 'Có', K2: 'Có', K5: 'Không', K6: 'Không' }
+          answers: { A1: 'V2.C1', A2: 'Trần Thị B', A4: 'Đạ Huoai, Lâm Đồng', A5: '4ha', A6: '2020', B1: 'Monthong', C1: 'NPK 16.16.8', C2: 'Mỗi tháng', C3: '30', C4: 'Không', C7: 'Có', C8: 'Sau đậu quả', D2: 'Hồ', E1: 'Không', E5: 'Có', E6: '45', E7: 'Thuốc sâu sinh học', E8: 'Khi phát hiện sâu bệnh', E9: 'Có', E10: 'Glyphosate', E11: 'Pha loãng theo nhãn', H3: '70', K5: 'Không ghi chú thêm' }
         }
       ];
       state.selected = 'demo-1';
